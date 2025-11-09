@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ompay-laravel
+    runtime: docker
+    buildCommand: docker build -t ompay-app .
+    startCommand: docker run -p $PORT:80 --env-file .env ompay-app
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: mongodb
+      - key: DB_DATABASE_URL
+        value: mongodb+srv://tziprincii434_db_user:46bFRGvaU0D2qeMl@ompay.shuqnnd.mongodb.net/?appName=ompay
+      - key: CACHE_DRIVER
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: SESSION_DRIVER
+        value: file
+    healthCheckPath: /
+    disk:
+      name: ompay-disk
+      mountPath: /var/www/html/storage
+      sizeGB: 1
