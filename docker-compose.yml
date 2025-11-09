@@ -14,24 +14,18 @@ services:
     environment:
       - APP_ENV=local
       - APP_KEY=${APP_KEY}
-      - DB_CONNECTION=mongodb
-      - DB_DATABASE_URL=mongodb+srv://tziprincii434_db_user:46bFRGvaU0D2qeMl@ompay.shuqnnd.mongodb.net/?appName=ompay
-    networks:
-      - ompay-network
-
-  mongo-express:
-    image: mongo-express:latest
-    ports:
-      - "9092:8081"
-    environment:
-      ME_CONFIG_MONGODB_URL: mongodb+srv://tziprincii434_db_user:46bFRGvaU0D2qeMl@ompay.shuqnnd.mongodb.net/?appName=ompay
-      ME_CONFIG_BASICAUTH_USERNAME: admin
-      ME_CONFIG_BASICAUTH_PASSWORD: password
+      - DB_CONNECTION=pgsql
+      - DB_HOST=ep-wispy-union-adcens7o-pooler.c-2.us-east-1.aws.neon.tech
+      - DB_PORT=5432
+      - DB_DATABASE=neondb
+      - DB_USERNAME=neondb_owner
+      - DB_PASSWORD=npg_avDqQ3wOuKN8
+      - DB_SSLMODE=require
+      - DB_CHANNEL_BINDING=require
     networks:
       - ompay-network
 
 volumes:
-  mongodb_data:
 
 networks:
   ompay-network:

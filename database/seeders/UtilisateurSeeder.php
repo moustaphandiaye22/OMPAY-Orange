@@ -13,13 +13,9 @@ class UtilisateurSeeder extends Seeder
      */
     public function run(): void
     {
-        // Créer des utilisateurs de test avec insertion directe (compatible MongoDB)
+        // Créer des utilisateurs de test avec insertion directe (compatible PostgreSQL)
         for ($i = 0; $i < 10; $i++) {
-            $utilisateurId = (string) \Illuminate\Support\Str::uuid();
-
-            // Créer l'utilisateur
-            DB::table('utilisateurs')->insert([
-                '_id' => $utilisateurId,
+            $utilisateurId = DB::table('utilisateurs')->insertGetId([
                 'numero_telephone' => '77' . rand(1000000, 9999999),
                 'prenom' => $this->getRandomPrenom(),
                 'nom' => $this->getRandomNom(),
@@ -33,11 +29,10 @@ class UtilisateurSeeder extends Seeder
                 'updated_at' => now(),
             ]);
 
-            // Créer le portefeuille
+            // Créer le portefeuille avec solde 0 pour les utilisateurs normaux
             DB::table('portefeuilles')->insert([
-                '_id' => (string) \Illuminate\Support\Str::uuid(),
                 'id_utilisateur' => $utilisateurId,
-                'solde' => rand(0, 100000),
+                'solde' => 0,
                 'devise' => 'XOF',
                 'derniere_mise_a_jour' => now(),
                 'created_at' => now(),
@@ -46,7 +41,6 @@ class UtilisateurSeeder extends Seeder
 
             // Créer les paramètres de sécurité
             DB::table('parametres_securites')->insert([
-                '_id' => (string) \Illuminate\Support\Str::uuid(),
                 'id_utilisateur' => $utilisateurId,
                 'biometrie_active' => rand(0, 1),
                 'tentatives_echouees' => 0,
@@ -58,7 +52,6 @@ class UtilisateurSeeder extends Seeder
             $numContacts = rand(3, 8);
             for ($j = 0; $j < $numContacts; $j++) {
                 DB::table('contacts')->insert([
-                    '_id' => (string) \Illuminate\Support\Str::uuid(),
                     'id_utilisateur' => $utilisateurId,
                     'nom' => $this->getRandomPrenom() . ' ' . $this->getRandomNom(),
                     'numero_telephone' => '77' . rand(1000000, 9999999),
@@ -72,9 +65,7 @@ class UtilisateurSeeder extends Seeder
         }
 
         // Créer un utilisateur administrateur
-        $adminId = (string) \Illuminate\Support\Str::uuid();
-        DB::table('utilisateurs')->insert([
-            '_id' => $adminId,
+        $adminId = DB::table('utilisateurs')->insertGetId([
             'numero_telephone' => '771234567',
             'prenom' => 'Admin',
             'nom' => 'Orange Money',
@@ -89,9 +80,8 @@ class UtilisateurSeeder extends Seeder
         ]);
 
         DB::table('portefeuilles')->insert([
-            '_id' => (string) \Illuminate\Support\Str::uuid(),
             'id_utilisateur' => $adminId,
-            'solde' => 1000000, // 1 million XOF
+            'solde' => 10000, // 10 000 XOF pour l'utilisateur principal
             'devise' => 'XOF',
             'derniere_mise_a_jour' => now(),
             'created_at' => now(),
@@ -99,7 +89,6 @@ class UtilisateurSeeder extends Seeder
         ]);
 
         DB::table('parametres_securites')->insert([
-            '_id' => (string) \Illuminate\Support\Str::uuid(),
             'id_utilisateur' => $adminId,
             'biometrie_active' => true,
             'tentatives_echouees' => 0,

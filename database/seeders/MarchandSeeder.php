@@ -53,9 +53,7 @@ class MarchandSeeder extends Seeder
         ];
 
         foreach ($marchands as $marchandData) {
-            $marchandId = (string) \Illuminate\Support\Str::uuid();
-            DB::table('marchands')->insert(array_merge($marchandData, [
-                '_id' => $marchandId,
+            $marchandId = DB::table('marchands')->insertGetId(array_merge($marchandData, [
                 'created_at' => now(),
                 'updated_at' => now(),
             ]));
@@ -64,7 +62,6 @@ class MarchandSeeder extends Seeder
             if ($marchandData['accepte_qr']) {
                 for ($i = 0; $i < rand(1, 3); $i++) {
                     DB::table('qr_codes')->insert([
-                        '_id' => (string) \Illuminate\Support\Str::uuid(),
                         'id_marchand' => $marchandId,
                         'donnees' => 'QR_' . strtoupper(\Illuminate\Support\Str::random(16)),
                         'montant' => rand(1000, 50000),
@@ -81,7 +78,6 @@ class MarchandSeeder extends Seeder
             if ($marchandData['accepte_code']) {
                 for ($i = 0; $i < rand(2, 5); $i++) {
                     DB::table('code_paiements')->insert([
-                        '_id' => (string) \Illuminate\Support\Str::uuid(),
                         'code' => strtoupper(\Illuminate\Support\Str::random(6)),
                         'id_marchand' => $marchandId,
                         'montant' => rand(500, 25000),
@@ -97,12 +93,10 @@ class MarchandSeeder extends Seeder
 
         // Créer des marchands supplémentaires
         for ($i = 0; $i < 15; $i++) {
-            $marchandId = (string) \Illuminate\Support\Str::uuid();
             $accepteQr = rand(0, 1);
             $accepteCode = rand(0, 1);
 
-            DB::table('marchands')->insert([
-                '_id' => $marchandId,
+            $marchandId = DB::table('marchands')->insertGetId([
                 'nom' => $this->getRandomMarchandName(),
                 'numero_telephone' => '77' . rand(1000000, 9999999),
                 'adresse' => $this->getRandomAdresse(),
@@ -118,7 +112,6 @@ class MarchandSeeder extends Seeder
             if ($accepteQr) {
                 for ($j = 0; $j < rand(1, 3); $j++) {
                     DB::table('qr_codes')->insert([
-                        '_id' => (string) \Illuminate\Support\Str::uuid(),
                         'id_marchand' => $marchandId,
                         'donnees' => 'QR_' . strtoupper(\Illuminate\Support\Str::random(16)),
                         'montant' => rand(1000, 50000),
@@ -135,7 +128,6 @@ class MarchandSeeder extends Seeder
             if ($accepteCode) {
                 for ($j = 0; $j < rand(1, 4); $j++) {
                     DB::table('code_paiements')->insert([
-                        '_id' => (string) \Illuminate\Support\Str::uuid(),
                         'code' => strtoupper(\Illuminate\Support\Str::random(6)),
                         'id_marchand' => $marchandId,
                         'montant' => rand(500, 25000),

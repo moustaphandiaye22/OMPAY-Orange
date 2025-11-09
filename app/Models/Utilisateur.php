@@ -22,6 +22,8 @@ class Utilisateur extends Model
         'nom',
         'email',
         'code_pin',
+        'otp',
+        'otp_expires_at',
         'numero_cni',
         'statut_kyc',
         'biometrie_activee',
@@ -37,6 +39,7 @@ class Utilisateur extends Model
         'biometrie_activee' => 'boolean',
         'date_creation' => 'datetime',
         'derniere_connexion' => 'datetime',
+        'otp_expires_at' => 'datetime',
     ];
 
     // Relationships

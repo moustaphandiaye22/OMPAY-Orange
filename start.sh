@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# Wait for database to be ready (if using local MongoDB)
-# if [ "$DB_CONNECTION" = "mongodb" ] && [ "$DB_HOST" = "mongodb" ]; then
-#   echo "Waiting for MongoDB to be ready..."
-#   while ! nc -z mongodb 27017; do
-#     sleep 1
-#   done
-#   echo "MongoDB is ready!"
-# fi
+# Wait for database to be ready (if using PostgreSQL)
+if [ "$DB_CONNECTION" = "pgsql" ]; then
+  echo "Waiting for PostgreSQL to be ready..."
+  while ! nc -z $DB_HOST $DB_PORT; do
+    sleep 1
+  done
+  echo "PostgreSQL is ready!"
+fi
 
 # Run database migrations (if needed)
-# php artisan migrate --force
+php artisan migrate --force
 
 # Clear and cache config
 php artisan config:clear
