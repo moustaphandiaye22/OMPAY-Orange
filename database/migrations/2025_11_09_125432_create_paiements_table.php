@@ -13,13 +13,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('paiements', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_transaction')->constrained('transactions')->onDelete('cascade');
-            $table->foreignId('id_marchand')->constrained('marchands');
+            $table->uuid('id')->primary();
+            $table->foreignUuid('id_transaction')->constrained('transactions')->onDelete('cascade');
+            $table->foreignUuid('id_marchand')->constrained('marchands');
             $table->enum('mode_paiement', ['qr_code', 'code_numerique']);
             $table->json('details_paiement')->nullable();
-            $table->foreignId('id_qr_code')->nullable()->constrained('qr_codes')->onDelete('set null');
-            $table->foreignId('id_code_paiement')->nullable()->constrained('code_paiements')->onDelete('set null');
+            $table->foreignUuid('id_qr_code')->nullable()->constrained('qr_codes')->onDelete('set null');
+            $table->foreignUuid('id_code_paiement')->nullable()->constrained('code_paiements')->onDelete('set null');
             $table->timestamps();
 
             $table->index(['id_marchand', 'mode_paiement']);

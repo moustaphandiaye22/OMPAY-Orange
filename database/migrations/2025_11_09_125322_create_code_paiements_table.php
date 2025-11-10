@@ -13,9 +13,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('code_paiements', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('code', 10)->unique();
-            $table->foreignId('id_marchand')->constrained('marchands')->onDelete('cascade');
+            $table->foreignUuid('id_marchand')->constrained('marchands')->onDelete('cascade');
             $table->decimal('montant', 15, 2);
             $table->timestamp('date_generation')->useCurrent();
             $table->timestamp('date_expiration');

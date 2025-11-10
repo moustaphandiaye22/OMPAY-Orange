@@ -6,7 +6,7 @@ $kernel->bootstrap();
 
 use App\Models\Authentification;
 
-$a = Authentification::orderBy('_id', 'desc')->first();
+$a = Authentification::orderBy('id', 'desc')->first();
 if ($a) {
     echo $a->jeton_acces . PHP_EOL;
 } else {

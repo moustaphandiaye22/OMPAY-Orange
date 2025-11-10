@@ -13,10 +13,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('transferts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_transaction')->constrained('transactions')->onDelete('cascade');
-            $table->foreignId('id_expediteur')->constrained('utilisateurs');
-            $table->foreignId('id_destinataire')->constrained('destinataires');
+            $table->uuid('id')->primary();
+            $table->foreignUuid('id_transaction')->constrained('transactions')->onDelete('cascade');
+            $table->foreignUuid('id_expediteur')->constrained('utilisateurs');
+            $table->foreignUuid('id_destinataire')->constrained('destinataires');
             $table->string('nom_destinataire', 100);
             $table->text('note')->nullable();
             $table->timestamp('date_expiration')->nullable();

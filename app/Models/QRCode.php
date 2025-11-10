@@ -15,6 +15,7 @@ class QRCode extends Model
 
     protected $fillable = [
         'id_marchand',
+        'id_utilisateur',
         'donnees',
         'montant',
         'date_generation',
@@ -33,6 +34,11 @@ class QRCode extends Model
     public function marchand(): BelongsTo
     {
         return $this->belongsTo(Marchand::class, 'id_marchand');
+    }
+
+    public function utilisateur(): BelongsTo
+    {
+        return $this->belongsTo(Utilisateur::class, 'id_utilisateur');
     }
 
     public function paiement(): HasOne
