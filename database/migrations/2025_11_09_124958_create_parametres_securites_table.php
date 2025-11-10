@@ -13,8 +13,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('parametres_securites', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_utilisateur')->constrained('utilisateurs')->onDelete('cascade');
+            $table->uuid('id')->primary();
+            $table->foreignUuid('id_utilisateur')->constrained('utilisateurs')->onDelete('cascade');
             $table->boolean('biometrie_active')->default(false);
             $table->integer('tentatives_echouees')->default(0);
             $table->timestamp('date_deblocage')->nullable();

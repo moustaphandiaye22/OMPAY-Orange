@@ -13,8 +13,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('authentifications', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_utilisateur')->constrained('utilisateurs')->onDelete('cascade');
+            $table->uuid('id')->primary();
+            $table->foreignUuid('id_utilisateur')->constrained('utilisateurs')->onDelete('cascade');
             $table->string('jeton_acces', 500);
             $table->string('jeton_rafraichissement', 500);
             $table->timestamp('date_expiration');

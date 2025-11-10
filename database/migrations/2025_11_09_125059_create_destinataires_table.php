@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('destinataires', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('id')->primary();
             $table->string('numero_telephone', 20)->unique();
             $table->string('nom', 100);
             $table->enum('operateur', ['orange', 'free', 'expresso', 'autre'])->default('orange');

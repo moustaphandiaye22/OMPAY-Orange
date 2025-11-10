@@ -22,7 +22,8 @@ use App\Http\Controllers\HistoriqueController;
 
 // Authentification & Utilisateur
 Route::prefix('auth')->group(function () {
-    Route::post('inscription', [AuthController::class, 'inscription']);
+    Route::post('creercompte', [AuthController::class, 'creerCompte']);
+    Route::post('finaliser-inscription', [AuthController::class, 'finaliserInscription']);
     Route::post('verification-otp', [AuthController::class, 'verificationOtp']);
     Route::post('connexion', [AuthController::class, 'connexion']);
     Route::post('rafraichir', [AuthController::class, 'rafraichir']);
@@ -46,27 +47,27 @@ Route::middleware(['auth.token', 'rate.limit'])->group(function () {
     });
 
     // Transferts
-    Route::prefix('transferts')->group(function () {
+    Route::prefix('transfert')->group(function () {
         Route::post('verifier-destinataire', [TransfertController::class, 'verifierDestinataire']);
-        Route::post('initier', [TransfertController::class, 'initierTransfert']);
-        Route::post('{idTransfert}/confirmer', [TransfertController::class, 'confirmerTransfert']);
-        Route::delete('{idTransfert}', [TransfertController::class, 'annulerTransfert']);
+        Route::post('initier-transfert', [TransfertController::class, 'initierTransfert']);
+        Route::post('{idTransfert}/confirmer-transfert', [TransfertController::class, 'confirmerTransfert']);
+        Route::delete('{idTransfert}/annuler-transfert', [TransfertController::class, 'annulerTransfert']);
     });
 
     // Paiements Marchands
-    Route::prefix('paiements')->group(function () {
+    Route::prefix('paiement')->group(function () {
         Route::get('categories', [PaiementController::class, 'listerCategories']);
         Route::post('scanner-qr', [PaiementController::class, 'scannerQR']);
         Route::post('saisir-code', [PaiementController::class, 'saisirCode']);
-        Route::post('initier', [PaiementController::class, 'initierPaiement']);
-        Route::post('{idPaiement}/confirmer', [PaiementController::class, 'confirmerPaiement']);
-        Route::delete('{idPaiement}', [PaiementController::class, 'annulerPaiement']);
+        Route::post('initier-paiement', [PaiementController::class, 'initierPaiement']);
+        Route::post('{idPaiement}/confirmer-paiement', [PaiementController::class, 'confirmerPaiement']);
+        Route::delete('{idPaiement}/annuler-paiement', [PaiementController::class, 'annulerPaiement']);
     });
 
     // Contacts
-    Route::prefix('contacts')->group(function () {
-        Route::get('/', [ContactController::class, 'listerContacts']);
-        Route::post('/', [ContactController::class, 'ajouterContact']);
+    Route::prefix('contact')->group(function () {
+        Route::get('liste', [ContactController::class, 'listerContacts']);
+        Route::post('ajouter', [ContactController::class, 'ajouterContact']);
     });
 
     // Historique

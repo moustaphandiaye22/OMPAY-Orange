@@ -17,6 +17,7 @@ class PortefeuilleFactory extends Factory
     public function definition(): array
     {
         return [
+            'id' => (string) \Illuminate\Support\Str::uuid(),
             'id_utilisateur' => \App\Models\Utilisateur::factory(),
             'solde' => $this->faker->randomFloat(2, 0, 100000), // Solde entre 0 et 100,000 XOF
             'devise' => 'XOF',

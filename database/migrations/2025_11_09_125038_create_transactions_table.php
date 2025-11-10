@@ -13,8 +13,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('transactions', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_portefeuille')->constrained('portefeuilles')->onDelete('cascade');
+            $table->uuid('id')->primary();
+            $table->foreignUuid('id_portefeuille')->constrained('portefeuilles')->onDelete('cascade');
             $table->enum('type', ['transfert', 'paiement']);
             $table->decimal('montant', 15, 2);
             $table->string('devise', 3)->default('XOF');

@@ -36,6 +36,16 @@ class Transaction extends Model
         return $this->belongsTo(Portefeuille::class, 'id_portefeuille');
     }
 
+    public function transfert()
+    {
+        return $this->hasOne(Transfert::class, 'id_transaction');
+    }
+
+    public function paiement()
+    {
+        return $this->hasOne(Paiement::class, 'id_transaction');
+    }
+
     // Scopes
     public function scopeReussies($query)
     {

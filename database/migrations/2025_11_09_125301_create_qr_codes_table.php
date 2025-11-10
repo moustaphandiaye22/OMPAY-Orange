@@ -13,16 +13,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('qr_codes', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_marchand')->constrained('marchands')->onDelete('cascade');
+            $table->uuid('id')->primary();
+            $table->foreignUuid('id_marchand')->nullable()->constrained('marchands')->onDelete('cascade');
+            $table->foreignUuid('id_utilisateur')->nullable()->constrained('utilisateurs')->onDelete('cascade');
             $table->text('donnees');
-            $table->decimal('montant', 15, 2);
+            $table->decimal('montant', 15, 2)->nullable();
             $table->timestamp('date_generation')->useCurrent();
             $table->timestamp('date_expiration');
             $table->boolean('utilise')->default(false);
             $table->timestamps();
 
             $table->index(['id_marchand', 'utilise', 'date_expiration']);
+            $table->index(['id_utilisateur', 'utilise', 'date_expiration']);
             $table->index('date_generation');
         });
     }

@@ -13,8 +13,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('portefeuilles', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_utilisateur')->constrained('utilisateurs')->onDelete('cascade');
+            $table->uuid('id')->primary();
+            $table->foreignUuid('id_utilisateur')->constrained('utilisateurs')->onDelete('cascade');
             $table->decimal('solde', 15, 2)->default(0);
             $table->string('devise', 3)->default('XOF');
             $table->timestamp('derniere_mise_a_jour')->useCurrent();
