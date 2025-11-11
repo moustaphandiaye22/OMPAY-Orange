@@ -18,12 +18,9 @@ class ApiEndpointsTest extends TestCase
             'numeroTelephone' => $numero,
             'prenom' => 'Test',
             'nom' => 'User',
-            'email' => 'test+' . mt_rand(1000,9999) . '@example.com',
-            'codePin' => '1234',
-            'numeroCNI' => (string) mt_rand(100000000000, 999999999999),
         ];
 
-        $this->postJson('/api/auth/inscription', $inscriptionPayload)
+        $this->postJson('/api/auth/creercompte', $inscriptionPayload)
               ->assertStatus(201)
               ->assertJsonPath('success', true);
 

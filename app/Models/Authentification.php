@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -11,6 +12,8 @@ use Carbon\Carbon;
 class Authentification extends Model
 {
     use HasFactory;
+
+    use HasUuids;
 
     protected $table = 'authentifications';
 
@@ -20,6 +23,10 @@ class Authentification extends Model
         'jeton_rafraichissement',
         'date_expiration',
     ];
+
+    // UUID primary key configuration
+    protected $keyType = 'string';
+    public $incrementing = false;
 
     protected $hidden = [
         'jeton_acces',

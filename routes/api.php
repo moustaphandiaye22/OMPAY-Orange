@@ -6,8 +6,6 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PortefeuilleController;
 use App\Http\Controllers\TransfertController;
 use App\Http\Controllers\PaiementController;
-use App\Http\Controllers\ContactController;
-use App\Http\Controllers\HistoriqueController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,9 +32,7 @@ Route::middleware(['auth.token', 'rate.limit'])->group(function () {
     // Utilisateur
     Route::prefix('utilisateurs')->group(function () {
         Route::get('profil', [AuthController::class, 'consulterProfil']);
-        Route::put('profil', [AuthController::class, 'mettreAJourProfil']);
         Route::post('changer-pin', [AuthController::class, 'changerPin']);
-        Route::post('activer-biometrie', [AuthController::class, 'activerBiometrie']);
     });
 
     // Portefeuille
@@ -48,15 +44,12 @@ Route::middleware(['auth.token', 'rate.limit'])->group(function () {
 
     // Transferts
     Route::prefix('transfert')->group(function () {
-        Route::post('verifier-destinataire', [TransfertController::class, 'verifierDestinataire']);
-        Route::post('initier-transfert', [TransfertController::class, 'initierTransfert']);
-        Route::post('{idTransfert}/confirmer-transfert', [TransfertController::class, 'confirmerTransfert']);
+        Route::post('effectuer-transfert', [TransfertController::class, 'effectuerTransfert']);
         Route::delete('{idTransfert}/annuler-transfert', [TransfertController::class, 'annulerTransfert']);
     });
 
     // Paiements Marchands
     Route::prefix('paiement')->group(function () {
-        Route::get('categories', [PaiementController::class, 'listerCategories']);
         Route::post('scanner-qr', [PaiementController::class, 'scannerQR']);
         Route::post('saisir-code', [PaiementController::class, 'saisirCode']);
         Route::post('initier-paiement', [PaiementController::class, 'initierPaiement']);
@@ -64,16 +57,6 @@ Route::middleware(['auth.token', 'rate.limit'])->group(function () {
         Route::delete('{idPaiement}/annuler-paiement', [PaiementController::class, 'annulerPaiement']);
     });
 
-    // Contacts
-    Route::prefix('contact')->group(function () {
-        Route::get('liste', [ContactController::class, 'listerContacts']);
-        Route::post('ajouter', [ContactController::class, 'ajouterContact']);
-    });
-
-    // Historique
-    Route::prefix('historique')->group(function () {
-        Route::get('rechercher', [HistoriqueController::class, 'rechercher']);
-    });
 });
 
 Route::middleware('auth.token')->get('/user', function (Request $request) {

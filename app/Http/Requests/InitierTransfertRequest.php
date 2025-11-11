@@ -3,6 +3,8 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class InitierTransfertRequest extends FormRequest
 {
@@ -24,8 +26,9 @@ class InitierTransfertRequest extends FormRequest
         return [
             'telephoneDestinataire' => 'required|string|regex:/^\+221[0-9]{9}$/',
             'montant' => 'required|numeric|min:100|max:1000000',
-            'devise' => 'required|string|in:XOF',
+            'devise' => 'required|string|in:FCFA,XOF',
             'note' => 'nullable|string|max:100',
+            'codePin' => 'required|string|size:4',
         ];
     }
 
@@ -49,6 +52,29 @@ class InitierTransfertRequest extends FormRequest
             'devise.in' => 'La devise doit être XOF.',
             'note.string' => 'La note doit être une chaîne de caractères.',
             'note.max' => 'La note ne peut pas dépasser 100 caractères.',
+            'codePin.required' => 'Le code PIN est requis.',
+            'codePin.string' => 'Le code PIN doit être une chaîne de caractères.',
+            'codePin.size' => 'Le code PIN doit contenir exactement 4 caractères.',
         ];
+    }
+
+    /**
+     * Handle a failed validation attempt.
+     *
+     * @param  \Illuminate\Contracts\Validation\Validator  $validator
+     * @return void
+     *
+     * @throws \Illuminate\Http\Exceptions\HttpResponseException
+     */
+    protected function failedValidation(Validator $validator)
+    {
+        throw new HttpResponseException(response()->json([
+            'success' => false,
+            'error' => [
+                'code' => 'VALIDATION_ERROR',
+                'message' => 'Données de validation invalides',
+                'details' => $validator->errors()
+            ]
+        ], 422));
     }
 }

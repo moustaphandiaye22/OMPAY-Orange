@@ -16,8 +16,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignUuid('id_utilisateur')->constrained('utilisateurs')->onDelete('cascade');
             $table->decimal('solde', 15, 2)->default(0);
-            $table->string('devise', 3)->default('XOF');
-            $table->timestamp('derniere_mise_a_jour')->useCurrent();
+            $table->string('devise', 10)->default('FCFA');
             $table->timestamps();
 
             $table->index(['id_utilisateur', 'solde']);

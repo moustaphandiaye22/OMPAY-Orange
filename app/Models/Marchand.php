@@ -13,15 +13,24 @@ class Marchand extends Model
 
     protected $table = 'marchands';
 
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
+        'id',
+        'idMarchand',
         'nom',
         'numero_telephone',
         'adresse',
         'logo',
+        'categorie',
         'actif',
         'accepte_qr',
         'accepte_code',
     ];
+
+    protected $guarded = [];
 
     protected $casts = [
         'actif' => 'boolean',

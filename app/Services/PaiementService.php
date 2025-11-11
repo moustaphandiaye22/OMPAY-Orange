@@ -15,29 +15,6 @@ use Carbon\Carbon;
 
 class PaiementService implements PaiementServiceInterface
 {
-    // 4.1 Lister les Catégories de Marchands
-    public function listerCategories()
-    {
-        // Mongo driver doesn't support selectRaw/groupBy like SQL.
-        // Load categories and aggregate counts in PHP to remain compatible with MongoDB.
-        $categories = Marchand::all()->groupBy('categorie')->map(function ($items, $categorie) {
-            return [
-                'idCategorie' => 'cat_' . strtolower(str_replace(' ', '_', $categorie)),
-                'nom' => $categorie,
-                'description' => 'Description de ' . $categorie,
-                'icone' => strtolower(str_replace(' ', '_', $categorie)),
-                'nombreMarchands' => count($items),
-            ];
-        })->values();
-
-        return [
-            'success' => true,
-            'data' => [
-                'categories' => $categories
-            ]
-        ];
-    }
-
     // 4.2 Scanner un QR Code
     public function scannerQR($donneesQR)
     {
@@ -59,7 +36,7 @@ class PaiementService implements PaiementServiceInterface
         $timestamp = $parts[4];
         $signature = $parts[5];
 
-        $marchand = Marchand::find($idMarchand);
+        $marchand = Marchand::where('id', $idMarchand)->orWhere('idMarchand', $idMarchand)->first();
         if (!$marchand) {
             return [
                 'success' => false,
@@ -108,9 +85,9 @@ class PaiementService implements PaiementServiceInterface
     public function saisirCode($code)
     {
         $codePaiement = CodePaiement::where('code', $code)
-                                    ->where('statut', 'actif')
-                                    ->where('dateExpiration', '>', Carbon::now())
-                                    ->first();
+                                     ->where('utilise', false)
+                                     ->where('date_expiration', '>', Carbon::now())
+                                     ->first();
 
         if (!$codePaiement) {
             return [
@@ -147,7 +124,11 @@ class PaiementService implements PaiementServiceInterface
     // 4.4 Initier un Paiement
     public function initierPaiement($utilisateur, $data)
     {
-        $marchand = Marchand::find($data['idMarchand']);
+        $marchandId = $data['idMarchand'] ?? $data['id_marchand'] ?? null;
+        $montant = $data['montant'] ?? null;
+        $modePaiement = $data['modePaiement'] ?? $data['mode_paiement'] ?? null;
+
+        $marchand = Marchand::find($marchandId);
 
         if (!$marchand) {
             return [
@@ -162,7 +143,18 @@ class PaiementService implements PaiementServiceInterface
 
         $portefeuille = $utilisateur->portefeuille;
 
-        if ($portefeuille->solde < $data['montant']) {
+        if (!$portefeuille) {
+            return [
+                'success' => false,
+                'error' => [
+                    'code' => 'WALLET_001',
+                    'message' => 'Portefeuille introuvable'
+                ],
+                'status' => 404
+            ];
+        }
+
+        if ($montant === null || $portefeuille->solde < $montant) {
             return [
                 'success' => false,
                 'error' => [
@@ -173,33 +165,41 @@ class PaiementService implements PaiementServiceInterface
             ];
         }
 
-        $idPaiement = 'pay_' . Str::random(10);
+        // Créer d'abord une transaction liée au portefeuille
+        $transaction = new Transaction();
+        $transaction->id = (string) Str::uuid();
+        $transaction->id_portefeuille = $portefeuille->id;
+        $transaction->type = 'paiement';
+        $transaction->montant = $montant;
+        $transaction->devise = 'XOF';
+        $transaction->statut = 'en_attente';
+        $transaction->reference = 'OM' . date('YmdHis') . rand(100000, 999999);
+        $transaction->date_transaction = Carbon::now();
+        $transaction->save();
 
-        $paiement = Paiement::create([
-            'idPaiement' => $idPaiement,
-            'idUtilisateur' => $utilisateur->idUtilisateur,
-            'idMarchand' => $data['idMarchand'],
-            'montant' => $data['montant'],
-            'devise' => 'XOF',
-            'modePaiement' => $data['modePaiement'],
-            'statut' => 'en_attente_confirmation',
-            'dateExpiration' => Carbon::now()->addMinutes(5),
-        ]);
+        // Créer l'enregistrement dans la table paiements
+        $paiement = new Paiement();
+        $paiement->id = (string) Str::uuid();
+        $paiement->id_transaction = $transaction->id;
+        $paiement->id_marchand = $marchand->id;
+        $paiement->mode_paiement = $modePaiement ?? 'qr_code';
+        $paiement->details_paiement = null;
+        $paiement->save();
 
         return [
             'success' => true,
             'data' => [
-                'idPaiement' => $paiement->idPaiement,
-                'statut' => $paiement->statut,
+                'idPaiement' => $paiement->id,
+                'statut' => $transaction->statut,
                 'marchand' => [
-                    'idMarchand' => $marchand->idMarchand,
+                    'idMarchand' => $marchand->id_marchand ?? $marchand->id,
                     'nom' => $marchand->nom,
                     'logo' => $marchand->logo,
                 ],
-                'montant' => $paiement->montant,
-                'frais' => 0, // Frais à la charge du marchand
-                'montantTotal' => $paiement->montant,
-                'dateExpiration' => optional($paiement->dateExpiration)?->toIso8601String(),
+                'montant' => $transaction->montant,
+                'frais' => 0,
+                'montantTotal' => $transaction->montant,
+                'dateExpiration' => optional($transaction->date_transaction)?->addMinutes(5)?->toIso8601String(),
             ],
             'message' => 'Veuillez confirmer le paiement avec votre code PIN'
         ];
@@ -208,23 +208,22 @@ class PaiementService implements PaiementServiceInterface
     // 4.5 Confirmer un Paiement
     public function confirmerPaiement($utilisateur, $idPaiement, $codePin)
     {
-        $paiement = Paiement::where('idPaiement', $idPaiement)
-                            ->where('idUtilisateur', $utilisateur->idUtilisateur)
-                            ->where('statut', 'en_attente_confirmation')
-                            ->first();
+        $paiement = Paiement::where('id', $idPaiement)->first();
 
-        if (!$paiement) {
+        if (!$paiement || !$paiement->transaction || !$paiement->transaction->portefeuille || ($paiement->transaction->portefeuille->id_utilisateur ?? null) !== ($utilisateur->id ?? null)) {
             return [
                 'success' => false,
                 'error' => [
                     'code' => 'PAYMENT_010',
-                    'message' => 'Paiement introuvable ou déjà confirmé'
+                    'message' => 'Paiement introuvable ou non autorisé'
                 ],
                 'status' => 404
             ];
         }
 
-        if (Carbon::now()->isAfter($paiement->dateExpiration)) {
+        $transaction = $paiement->transaction;
+
+        if (Carbon::now()->isAfter(optional($transaction->date_transaction)?->addMinutes(5) ?? now())) {
             return [
                 'success' => false,
                 'error' => [
@@ -235,7 +234,7 @@ class PaiementService implements PaiementServiceInterface
             ];
         }
 
-        if (!Hash::check($codePin, $utilisateur->codePin)) {
+        if (!Hash::check($codePin, $utilisateur->code_pin ?? $utilisateur->codePin ?? '')) {
             return [
                 'success' => false,
                 'error' => [
@@ -246,48 +245,49 @@ class PaiementService implements PaiementServiceInterface
             ];
         }
 
-        $result = DB::transaction(function () use ($paiement, $utilisateur) {
-            $portefeuille = $utilisateur->portefeuille;
+        try {
+            $portefeuille = $transaction->portefeuille;
             $marchand = $paiement->marchand;
 
-            // Débiter l'utilisateur
-            $portefeuille->decrement('solde', $paiement->montant);
-
-            // Créditer le marchand (simulé)
-            // $marchand->portefeuille->increment('solde', $paiement->montant);
-
-            // Créer la transaction
-            $idTransaction = 'txn_' . Str::random(10);
-            Transaction::create([
-                'idTransaction' => $idTransaction,
-                'idUtilisateur' => $utilisateur->idUtilisateur,
-                'type' => 'paiement',
-                'montant' => $paiement->montant,
-                'devise' => $paiement->devise,
-                'nomMarchand' => $marchand->nom,
-                'categorieMarchand' => $marchand->categorie,
-                'statut' => 'termine',
-                'dateTransaction' => Carbon::now(),
-                'reference' => 'OM' . date('YmdHis') . rand(100000, 999999),
-                'frais' => 0,
-            ]);
-
-            // Mettre à jour le paiement
-            $paiement->update([
-                'statut' => 'termine',
-                'idTransaction' => $idTransaction,
-            ]);
-
-            // Marquer le code comme utilisé si c'était un paiement par code
-            if ($paiement->modePaiement === 'code') {
-                // Trouver et marquer le code comme utilisé
+            // Vérifier que le solde est suffisant (double vérification)
+            if ($portefeuille->solde < $transaction->montant) {
+                return [
+                    'success' => false,
+                    'error' => [
+                        'code' => 'WALLET_001',
+                        'message' => 'Solde insuffisant'
+                    ],
+                    'status' => 422
+                ];
             }
 
-            return [
-                'idTransaction' => $idTransaction,
-                'reference' => 'OM' . date('YmdHis') . rand(100000, 999999),
+            // Débiter l'utilisateur
+            $newBalance = $portefeuille->solde - $transaction->montant;
+            $portefeuille->solde = $newBalance;
+            $portefeuille->save();
+
+            // Marquer la transaction comme terminée
+            $transaction->statut = 'reussie';
+            $transaction->save();
+
+            // Mettre à jour le paiement
+            $paiement->details_paiement = $paiement->details_paiement ?? [];
+            $paiement->save();
+
+            $result = [
+                'idTransaction' => $transaction->id,
+                'reference' => $transaction->reference ?? ('OM' . date('YmdHis') . rand(100000, 999999)),
             ];
-        });
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => [
+                    'code' => 'PAYMENT_011',
+                    'message' => 'Erreur lors de la confirmation du paiement: ' . $e->getMessage()
+                ],
+                'status' => 500
+            ];
+        }
 
         return [
             'success' => true,
@@ -296,10 +296,10 @@ class PaiementService implements PaiementServiceInterface
                 'statut' => 'termine',
                 'marchand' => [
                     'nom' => $paiement->marchand->nom,
-                    'numeroTelephone' => $paiement->marchand->numeroTelephone,
+                    'numeroTelephone' => $paiement->marchand->numero_telephone ?? $paiement->marchand->numeroTelephone ?? null,
                 ],
-                'montant' => $paiement->montant,
-                'dateTransaction' => Carbon::now()->toIso8601String(),
+                'montant' => $transaction->montant ?? null,
+                'dateTransaction' => optional($transaction->date_transaction)?->toIso8601String(),
                 'reference' => $result['reference'],
                 'recu' => 'https://cdn.ompay.sn/recus/' . $result['idTransaction'] . '.pdf',
             ],
@@ -307,26 +307,25 @@ class PaiementService implements PaiementServiceInterface
         ];
     }
 
-    // 4.6 Annuler un Paiement
+        // 4.6 Annuler un Paiement
     public function annulerPaiement($utilisateur, $idPaiement)
     {
-        $paiement = Paiement::where('idPaiement', $idPaiement)
-                            ->where('idUtilisateur', $utilisateur->idUtilisateur)
-                            ->where('statut', 'en_attente_confirmation')
-                            ->first();
+        $paiement = Paiement::where('id', $idPaiement)->first();
 
-        if (!$paiement) {
+        if (!$paiement || !$paiement->transaction || !$paiement->transaction->portefeuille || ($paiement->transaction->portefeuille->id_utilisateur ?? null) !== ($utilisateur->id ?? null)) {
             return [
                 'success' => false,
                 'error' => [
                     'code' => 'PAYMENT_010',
-                    'message' => 'Paiement introuvable ou déjà annulé'
+                    'message' => 'Paiement introuvable ou non autorisé'
                 ],
                 'status' => 404
             ];
         }
 
-        if (Carbon::now()->isAfter($paiement->dateExpiration)) {
+        $transaction = $paiement->transaction;
+
+        if (Carbon::now()->isAfter(optional($transaction->date_transaction)?->addMinutes(5) ?? now())) {
             return [
                 'success' => false,
                 'error' => [
@@ -337,7 +336,10 @@ class PaiementService implements PaiementServiceInterface
             ];
         }
 
-        $paiement->update(['statut' => 'annule']);
+        // Annuler la transaction si possible
+        if ($transaction->peutEtreAnnulee()) {
+            $transaction->annuler();
+        }
 
         return [
             'success' => true,

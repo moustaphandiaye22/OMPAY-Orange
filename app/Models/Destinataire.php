@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Destinataire extends Model
 {
@@ -12,7 +13,12 @@ class Destinataire extends Model
 
     protected $table = 'destinataires';
 
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
+        'id',
         'numero_telephone',
         'nom',
         'operateur',
