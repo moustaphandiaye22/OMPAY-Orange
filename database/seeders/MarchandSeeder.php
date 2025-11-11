@@ -54,6 +54,10 @@ class MarchandSeeder extends Seeder
 
         foreach ($marchands as $marchandData) {
             $marchandId = DB::table('marchands')->insertGetId(array_merge($marchandData, [
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'idMarchand' => 'MCH_' . strtoupper(\Illuminate\Support\Str::random(8)),
+                'categorie' => $this->getRandomCategorie(),
+                'logo' => 'https://cdn.ompay.sn/logos/' . strtolower(str_replace(' ', '_', $marchandData['nom'])) . '.png',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]));
@@ -62,6 +66,7 @@ class MarchandSeeder extends Seeder
             if ($marchandData['accepte_qr']) {
                 for ($i = 0; $i < rand(1, 3); $i++) {
                     DB::table('qr_codes')->insert([
+                        'id' => (string) \Illuminate\Support\Str::uuid(),
                         'id_marchand' => $marchandId,
                         'donnees' => 'QR_' . strtoupper(\Illuminate\Support\Str::random(16)),
                         'montant' => rand(1000, 50000),
@@ -78,6 +83,7 @@ class MarchandSeeder extends Seeder
             if ($marchandData['accepte_code']) {
                 for ($i = 0; $i < rand(2, 5); $i++) {
                     DB::table('code_paiements')->insert([
+                        'id' => (string) \Illuminate\Support\Str::uuid(),
                         'code' => strtoupper(\Illuminate\Support\Str::random(6)),
                         'id_marchand' => $marchandId,
                         'montant' => rand(500, 25000),
@@ -97,10 +103,13 @@ class MarchandSeeder extends Seeder
             $accepteCode = rand(0, 1);
 
             $marchandId = DB::table('marchands')->insertGetId([
+                'id' => (string) \Illuminate\Support\Str::uuid(),
+                'idMarchand' => 'MCH_' . strtoupper(\Illuminate\Support\Str::random(8)),
                 'nom' => $this->getRandomMarchandName(),
                 'numero_telephone' => '77' . rand(1000000, 9999999),
                 'adresse' => $this->getRandomAdresse(),
-                'logo' => rand(0, 1) ? 'https://via.placeholder.com/100' : null,
+                'categorie' => $this->getRandomCategorie(),
+                'logo' => 'https://cdn.ompay.sn/logos/' . strtolower(str_replace(' ', '_', $this->getRandomMarchandName())) . '.png',
                 'actif' => true,
                 'accepte_qr' => $accepteQr,
                 'accepte_code' => $accepteCode,
@@ -112,6 +121,7 @@ class MarchandSeeder extends Seeder
             if ($accepteQr) {
                 for ($j = 0; $j < rand(1, 3); $j++) {
                     DB::table('qr_codes')->insert([
+                        'id' => (string) \Illuminate\Support\Str::uuid(),
                         'id_marchand' => $marchandId,
                         'donnees' => 'QR_' . strtoupper(\Illuminate\Support\Str::random(16)),
                         'montant' => rand(1000, 50000),
@@ -128,6 +138,7 @@ class MarchandSeeder extends Seeder
             if ($accepteCode) {
                 for ($j = 0; $j < rand(1, 4); $j++) {
                     DB::table('code_paiements')->insert([
+                        'id' => (string) \Illuminate\Support\Str::uuid(),
                         'code' => strtoupper(\Illuminate\Support\Str::random(6)),
                         'id_marchand' => $marchandId,
                         'montant' => rand(500, 25000),
@@ -159,5 +170,15 @@ class MarchandSeeder extends Seeder
             'Route de Ouakam', 'Centre Ville', 'Mermoz Nord', 'Plateau Centre'
         ];
         return $adresses[array_rand($adresses)];
+    }
+
+    private function getRandomCategorie(): string
+    {
+        $categories = [
+            'Alimentation', 'Pharmacie', 'Restaurant', 'Station Service',
+            'Supermarché', 'Café', 'Boulangerie', 'Épicerie',
+            'Électronique', 'Librairie', 'Garage', 'Coiffure'
+        ];
+        return $categories[array_rand($categories)];
     }
 }

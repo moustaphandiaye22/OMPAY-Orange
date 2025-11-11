@@ -19,11 +19,13 @@ return new class extends Migration
             $table->foreignUuid('id_destinataire')->constrained('destinataires');
             $table->string('nom_destinataire', 100);
             $table->text('note')->nullable();
+            $table->string('statut', 50)->default('en_attente_confirmation');
             $table->timestamp('date_expiration')->nullable();
             $table->timestamps();
 
             $table->index(['id_expediteur', 'id_destinataire']);
             $table->index('date_expiration');
+            $table->index('statut');
         });
     }
 

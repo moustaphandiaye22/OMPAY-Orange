@@ -22,11 +22,10 @@ class InitierPaiementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'idScan' => 'required_without:idCode|string',
-            'idCode' => 'required_without:idScan|string',
             'idMarchand' => 'required|string',
             'montant' => 'required|numeric|min:50|max:500000',
-            'modePaiement' => 'required|in:qr_code,code',
+            'devise' => 'required|string|size:3',
+            'modePaiement' => 'sometimes|in:qr_code,code',
         ];
     }
 
@@ -38,17 +37,15 @@ class InitierPaiementRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'idScan.required_without' => 'L\'ID du scan est requis si l\'ID du code n\'est pas fourni.',
-            'idScan.string' => 'L\'ID du scan doit être une chaîne de caractères.',
-            'idCode.required_without' => 'L\'ID du code est requis si l\'ID du scan n\'est pas fourni.',
-            'idCode.string' => 'L\'ID du code doit être une chaîne de caractères.',
             'idMarchand.required' => 'L\'ID du marchand est requis.',
             'idMarchand.string' => 'L\'ID du marchand doit être une chaîne de caractères.',
             'montant.required' => 'Le montant est requis.',
             'montant.numeric' => 'Le montant doit être un nombre.',
             'montant.min' => 'Le montant minimum est de 50 XOF.',
             'montant.max' => 'Le montant maximum est de 500 000 XOF.',
-            'modePaiement.required' => 'Le mode de paiement est requis.',
+            'devise.required' => 'La devise est requise.',
+            'devise.string' => 'La devise doit être une chaîne de caractères.',
+            'devise.size' => 'La devise doit contenir exactement 3 caractères.',
             'modePaiement.in' => 'Le mode de paiement doit être qr_code ou code.',
         ];
     }

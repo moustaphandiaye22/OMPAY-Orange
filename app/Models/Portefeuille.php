@@ -4,26 +4,32 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Portefeuille extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected $table = 'portefeuilles';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
 
     protected $fillable = [
         'id_utilisateur',
         'solde',
         'devise',
-        'derniere_mise_a_jour',
     ];
+
+    protected $guarded = [];
 
     protected $casts = [
         'solde' => 'decimal:2',
-        'derniere_mise_a_jour' => 'datetime',
     ];
 
     // Relationships
@@ -67,7 +73,6 @@ class Portefeuille extends Model
 
         DB::transaction(function () use ($montant) {
             $this->decrement('solde', $montant);
-            $this->update(['derniere_mise_a_jour' => now()]);
         });
 
         return true;
@@ -77,7 +82,6 @@ class Portefeuille extends Model
     {
         DB::transaction(function () use ($montant) {
             $this->increment('solde', $montant);
-            $this->update(['derniere_mise_a_jour' => now()]);
         });
 
         return true;

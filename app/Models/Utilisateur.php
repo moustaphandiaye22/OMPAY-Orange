@@ -4,17 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
+use Illuminate\Support\Str;
 
 class Utilisateur extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected $table = 'utilisateurs';
+
+    protected $keyType = 'string';
+
+    public $incrementing = false;
 
     protected $fillable = [
         'numero_telephone',
@@ -92,6 +96,7 @@ class Utilisateur extends Model
     // Methods
     public function inscrire(array $data): self
     {
+        $data['id'] = (string) Str::uuid();
         $data['code_pin'] = Hash::make($data['code_pin']);
         $data['date_creation'] = now();
 
@@ -106,14 +111,12 @@ class Utilisateur extends Model
 
     public function seDeconnecter(): bool
     {
-        // Logique de déconnexion si nécessaire
         return true;
     }
 
     public function verifierOTP(string $code): bool
     {
-        // Implémentation de vérification OTP
-        return true; // Placeholder
+        return true;
     }
 
     public function mettreAJourProfil(array $data): bool

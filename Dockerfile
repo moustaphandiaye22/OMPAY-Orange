@@ -12,6 +12,8 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
+    libpq-dev \
+    netcat-openbsd \
     zip \
     unzip \
     nodejs \

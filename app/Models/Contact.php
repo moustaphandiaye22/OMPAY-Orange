@@ -4,11 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Contact extends Model
 {
     use HasFactory;
+
+    use HasUuids;
 
     protected $table = 'contacts';
 
@@ -16,10 +19,16 @@ class Contact extends Model
         'id_utilisateur',
         'nom',
         'numero_telephone',
-        'photo',
         'nombre_transactions',
         'derniere_transaction',
     ];
+
+    /**
+     * UUID primary key settings
+     */
+    public $incrementing = false;
+
+    protected $keyType = 'string';
 
     protected $casts = [
         'derniere_transaction' => 'datetime',
@@ -77,7 +86,6 @@ class Contact extends Model
             'id' => $this->id,
             'nom' => $this->nom,
             'numero_telephone' => $this->numero_telephone,
-            'photo' => $this->photo,
             'nombre_transactions' => $this->nombre_transactions,
             'derniere_transaction' => $this->derniere_transaction,
         ];

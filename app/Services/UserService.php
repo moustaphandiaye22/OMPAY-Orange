@@ -26,20 +26,4 @@ class UserService
         ];
     }
 
-    // Mettre à jour le profil
-    public function mettreAJourProfil($utilisateur, $data)
-    {
-        $utilisateur->update($data);
-
-        return [
-            'success' => true,
-            'data' => [
-                'idUtilisateur' => $utilisateur->getKey(),
-                'prenom' => $utilisateur->prenom,
-                'nom' => $utilisateur->nom,
-                'email' => $utilisateur->email,
-            ],
-            'message' => 'Profil mis à jour avec succès'
-        ];
-    }
 }

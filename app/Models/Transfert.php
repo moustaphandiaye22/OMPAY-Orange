@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class Transfert extends Transaction
@@ -15,12 +16,18 @@ class Transfert extends Transaction
 
     protected $table = 'transferts';
 
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
+        'id',
         'id_transaction',
         'id_expediteur',
         'id_destinataire',
         'nom_destinataire',
         'note',
+        'statut',
         'date_expiration',
     ];
 

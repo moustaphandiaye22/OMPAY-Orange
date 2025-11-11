@@ -18,7 +18,6 @@ return new class extends Migration
             $table->foreignUuid('id_utilisateur')->constrained('utilisateurs')->onDelete('cascade');
             $table->string('nom', 100);
             $table->string('numero_telephone', 20);
-            $table->string('photo', 255)->nullable();
             $table->integer('nombre_transactions')->default(0);
             $table->timestamp('derniere_transaction')->nullable();
             $table->timestamps();

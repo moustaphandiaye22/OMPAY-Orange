@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignUuid('id_portefeuille')->constrained('portefeuilles')->onDelete('cascade');
             $table->enum('type', ['transfert', 'paiement']);
             $table->decimal('montant', 15, 2);
-            $table->string('devise', 3)->default('XOF');
+            $table->string('devise', 3)->default('FCFA');
             $table->enum('statut', ['en_attente', 'en_cours', 'reussie', 'echouee', 'annulee'])->default('en_attente');
             $table->decimal('frais', 10, 2)->default(0);
             $table->string('reference', 50)->unique();

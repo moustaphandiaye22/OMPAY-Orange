@@ -13,6 +13,10 @@ class Transaction extends Model
 
     protected $table = 'transactions';
 
+    protected $keyType = 'string';
+
+    public $incrementing = false;
+
     protected $fillable = [
         'id_portefeuille',
         'type',

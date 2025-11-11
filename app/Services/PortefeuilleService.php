@@ -33,7 +33,6 @@ class PortefeuilleService implements PortefeuilleServiceInterface
                 'soldeDisponible' => $portefeuille->solde,
                 'soldeEnAttente' => 0, // Calculer si nécessaire
                 'devise' => $portefeuille->devise,
-                'derniereMiseAJour' => $portefeuille->derniere_mise_a_jour->toISOString(),
             ]
         ];
     }
@@ -41,7 +40,20 @@ class PortefeuilleService implements PortefeuilleServiceInterface
     // 2.2 Historique des Transactions
     public function historiqueTransactions($utilisateur, $filters, $page, $limite)
     {
-        $query = Transaction::where('id_portefeuille', $utilisateur->portefeuille->id);
+        $portefeuille = $utilisateur->portefeuille;
+
+        if (!$portefeuille) {
+            return [
+                'success' => false,
+                'error' => [
+                    'code' => 'WALLET_001',
+                    'message' => 'Portefeuille introuvable'
+                ],
+                'status' => 404
+            ];
+        }
+
+        $query = Transaction::where('id_portefeuille', $portefeuille->id);
 
         if (isset($filters['type']) && $filters['type'] !== 'tous') {
             $query->where('type', $filters['type']);
@@ -70,16 +82,16 @@ class PortefeuilleService implements PortefeuilleServiceInterface
                 $transfert = $transaction->transfert;
                 if ($transfert) {
                     $destinataire = [
-                        'numeroTelephone' => $transfert->destinataire->numero_telephone,
-                        'nom' => $transfert->nom_destinataire,
+                        'numeroTelephone' => $transfert->destinataire?->numero_telephone ?? $transfert->numero_destinataire ?? null,
+                        'nom' => $transfert->nom_destinataire ?? $transfert->destinataire?->prenom . ' ' . $transfert->destinataire?->nom,
                     ];
                 }
             } elseif ($transaction->type === 'paiement') {
                 $paiement = $transaction->paiement;
-                if ($paiement) {
+                if ($paiement && $paiement->marchand) {
                     $marchand = [
                         'nom' => $paiement->marchand->nom,
-                        'categorie' => 'General', // Assuming no category in marchand table
+                        'categorie' => $paiement->marchand->categorie ?? 'General',
                     ];
                 }
             }
@@ -92,7 +104,7 @@ class PortefeuilleService implements PortefeuilleServiceInterface
                 'destinataire' => $destinataire,
                 'marchand' => $marchand,
                 'statut' => $transaction->statut,
-                'dateTransaction' => $transaction->date_transaction->toISOString(),
+                'dateTransaction' => $transaction->date_transaction ? $transaction->date_transaction->toIso8601String() : null,
                 'reference' => $transaction->reference,
                 'frais' => $transaction->frais,
             ];
@@ -112,11 +124,13 @@ class PortefeuilleService implements PortefeuilleServiceInterface
         ];
     }
 
-    // 2.3 Détails d'une Transaction
+        // 2.3 Détails d'une Transaction
     public function detailsTransaction($utilisateur, $idTransaction)
     {
         $transaction = Transaction::where('id', $idTransaction)
-                                  ->where('id_portefeuille', $utilisateur->portefeuille->id)
+                                  ->whereHas('portefeuille', function ($q) use ($utilisateur) {
+                                      $q->where('id_utilisateur', $utilisateur->id);
+                                  })
                                   ->first();
 
         if (!$transaction) {
@@ -136,13 +150,13 @@ class PortefeuilleService implements PortefeuilleServiceInterface
         if ($transaction->type === 'transfert') {
             $expediteur = [
                 'numeroTelephone' => $utilisateur->numero_telephone,
-                'nom' => $utilisateur->prenom . ' ' . $utilisateur->nom,
+                'nom' => ($utilisateur->prenom ?? '') . ' ' . ($utilisateur->nom ?? ''),
             ];
             $transfert = $transaction->transfert;
             if ($transfert) {
                 $destinataire = [
-                    'numeroTelephone' => $transfert->destinataire->numero_telephone,
-                    'nom' => $transfert->nom_destinataire,
+                    'numeroTelephone' => $transfert->destinataire?->numero_telephone ?? $transfert->numero_destinataire ?? null,
+                    'nom' => $transfert->nom_destinataire ?? ($transfert->destinataire?->prenom . ' ' . $transfert->destinataire?->nom),
                 ];
             }
         }
@@ -157,10 +171,10 @@ class PortefeuilleService implements PortefeuilleServiceInterface
                 'expediteur' => $expediteur,
                 'destinataire' => $destinataire,
                 'statut' => $transaction->statut,
-                'dateTransaction' => $transaction->date_transaction->toISOString(),
+                'dateTransaction' => $transaction->date_transaction ? $transaction->date_transaction->toIso8601String() : null,
                 'reference' => $transaction->reference,
                 'frais' => $transaction->frais,
-                'note' => $transaction->transfert ? $transaction->transfert->note : null,
+                'note' => $transaction->transfert ? $transaction->transfert->note ?? null : null,
             ]
         ];
     }

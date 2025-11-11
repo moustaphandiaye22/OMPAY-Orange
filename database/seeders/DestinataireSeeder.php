@@ -49,7 +49,7 @@ class DestinataireSeeder extends Seeder
 
         foreach ($destinataires as $destinataireData) {
             DB::table('destinataires')->insert(array_merge($destinataireData, [
-                
+                'id' => (string) \Illuminate\Support\Str::uuid(),
                 'created_at' => now(),
                 'updated_at' => now(),
             ]));
@@ -62,7 +62,7 @@ class DestinataireSeeder extends Seeder
             $numeroTelephone = $operateur . rand(1000000, 9999999);
 
             DB::table('destinataires')->insert([
-                
+                'id' => (string) \Illuminate\Support\Str::uuid(),
                 'numero_telephone' => $numeroTelephone,
                 'nom' => $this->getRandomPrenom() . ' ' . $this->getRandomNom(),
                 'operateur' => $this->determinerOperateur($numeroTelephone),

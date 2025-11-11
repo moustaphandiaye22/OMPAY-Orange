@@ -22,7 +22,7 @@ class SaisirCodeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => 'required|string|size:8|regex:/^[0-9]{8}$/',
+            'code' => 'required|string|min:1|max:10',
         ];
     }
 
@@ -36,8 +36,8 @@ class SaisirCodeRequest extends FormRequest
         return [
             'code.required' => 'Le code est requis.',
             'code.string' => 'Le code doit être une chaîne de caractères.',
-            'code.size' => 'Le code doit contenir exactement 8 caractères.',
-            'code.regex' => 'Le code doit contenir uniquement des chiffres.',
+            'code.min' => 'Le code doit contenir au moins 1 caractère.',
+            'code.max' => 'Le code ne peut pas dépasser 10 caractères.',
         ];
     }
 }

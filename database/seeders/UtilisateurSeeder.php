@@ -5,73 +5,55 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Models\Utilisateur;
+use App\Models\Portefeuille;
+use Database\Seeders\PhoneNumberHelper;
 
 class UtilisateurSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+    use WithoutModelEvents;
+
     public function run(): void
     {
-        // Créer des utilisateurs de test avec insertion directe (compatible PostgreSQL)
+        // Créer des utilisateurs de test
         for ($i = 0; $i < 10; $i++) {
-            $utilisateurId = DB::table('utilisateurs')->insertGetId([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
-                'numero_telephone' => '77' . rand(1000000, 9999999),
-                'prenom' => $this->getRandomPrenom(),
-                'nom' => $this->getRandomNom(),
-                'email' => 'user' . $i . '@example.com',
-                'code_pin' => bcrypt('1234'),
-                'numero_cni' => (string) rand(100000000000, 999999999999),
-                'statut_kyc' => $this->getRandomKycStatus(),
-                'biometrie_activee' => rand(0, 1),
-                'date_creation' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            try {
+                $utilisateur = Utilisateur::create([
+                    'numero_telephone' => "'" . PhoneNumberHelper::formatNumber('77' . rand(1000000, 9999999)) . "'",
+                    'prenom' => $this->getRandomPrenom(),
+                    'nom' => $this->getRandomNom(),
+                    'email' => 'user' . $i . '@example.com',
+                    'code_pin' => bcrypt('1234'),
+                    'numero_cni' => (string) rand(100000000000, 999999999999),
+                    'statut_kyc' => $this->getRandomKycStatus(),
+                    'biometrie_activee' => rand(0, 1),
+                    'date_creation' => now(),
+                ]);
+            } catch (\Exception $e) {
+                // Log l'erreur et continuer
+                \Log::error('Erreur lors de la création de l\'utilisateur: ' . $e->getMessage());
+                continue;
+            }
 
-            // Créer le portefeuille avec solde 0 pour les utilisateurs normaux
-            DB::table('portefeuilles')->insert([
-                'id' => (string) \Illuminate\Support\Str::uuid(),
-                'id_utilisateur' => $utilisateurId,
+            Portefeuille::create([
+                'id_utilisateur' => $utilisateur->id,
                 'solde' => 0,
-                'devise' => 'XOF',
-                'derniere_mise_a_jour' => now(),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'devise' => 'FCFA',
             ]);
 
-            // Créer les paramètres de sécurité
             DB::table('parametres_securites')->insert([
                 'id' => (string) \Illuminate\Support\Str::uuid(),
-                'id_utilisateur' => $utilisateurId,
+                'id_utilisateur' => $utilisateur->id,
                 'biometrie_active' => rand(0, 1),
                 'tentatives_echouees' => 0,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-
-            // Créer quelques contacts
-            $numContacts = rand(3, 8);
-            for ($j = 0; $j < $numContacts; $j++) {
-                DB::table('contacts')->insert([
-                    'id' => (string) \Illuminate\Support\Str::uuid(),
-                    'id_utilisateur' => $utilisateurId,
-                    'nom' => $this->getRandomPrenom() . ' ' . $this->getRandomNom(),
-                    'numero_telephone' => '77' . rand(1000000, 9999999),
-                    'photo' => rand(0, 1) ? 'https://via.placeholder.com/100' : null,
-                    'nombre_transactions' => rand(0, 50),
-                    'derniere_transaction' => rand(0, 1) ? now()->subDays(rand(1, 30)) : null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            }
         }
 
-        // Créer un utilisateur administrateur
-        $adminId = DB::table('utilisateurs')->insertGetId([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
-            'numero_telephone' => '771234567',
+        // Créer l'admin
+        $admin = Utilisateur::create([
+            'numero_telephone' => PhoneNumberHelper::formatNumber('771234567'),
             'prenom' => 'Admin',
             'nom' => 'Orange Money',
             'email' => 'admin@orangemoney.sn',
@@ -80,23 +62,17 @@ class UtilisateurSeeder extends Seeder
             'statut_kyc' => 'verifie',
             'biometrie_activee' => true,
             'date_creation' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
 
-        DB::table('portefeuilles')->insert([
-            'id' => (string) \Illuminate\Support\Str::uuid(),
-            'id_utilisateur' => $adminId,
-            'solde' => 10000, // 10 000 XOF pour l'utilisateur principal
-            'devise' => 'XOF',
-            'derniere_mise_a_jour' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
+        Portefeuille::create([
+            'id_utilisateur' => $admin->id,
+            'solde' => 10000,
+            'devise' => 'FCFA',
         ]);
 
         DB::table('parametres_securites')->insert([
             'id' => (string) \Illuminate\Support\Str::uuid(),
-            'id_utilisateur' => $adminId,
+            'id_utilisateur' => $admin->id,
             'biometrie_active' => true,
             'tentatives_echouees' => 0,
             'created_at' => now(),

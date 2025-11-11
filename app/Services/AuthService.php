@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Utilisateur;
+use App\Models\OrangeMoney;
 use App\Models\Authentification;
 use App\Models\QRCode;
 use Illuminate\Support\Facades\Hash;
@@ -23,7 +24,7 @@ class AuthService
     // 1.1 Initier l'Inscription
     public function initierInscription($data)
     {
-        // Vérifier si l'utilisateur existe déjà
+        // Vérifier si l'utilisateur existe déjà dans notre système
         $utilisateurExistant = Utilisateur::where('numero_telephone', $data['numeroTelephone'])->first();
 
         if ($utilisateurExistant) {
@@ -37,12 +38,32 @@ class AuthService
             ];
         }
 
+        // Vérifier si le numéro a un compte Orange Money
+        $compteOrangeMoney = OrangeMoney::verifierExistenceCompte($data['numeroTelephone']);
+
+        if (!$compteOrangeMoney) {
+            return [
+                'success' => false,
+                'error' => [
+                    'code' => 'AUTH_006',
+                    'message' => 'Ce numéro de téléphone n\'a pas de compte Orange Money actif'
+                ],
+                'status' => 404
+            ];
+        }
+
+        // Récupérer les informations du compte Orange Money
+        $compteOrangeMoney = OrangeMoney::verifierExistenceCompte($data['numeroTelephone']);
+
         // Créer un enregistrement temporaire avec les informations de base
+        // Utiliser les informations d'Orange Money si disponibles
         $utilisateurTemp = Utilisateur::create([
             'numero_telephone' => $data['numeroTelephone'],
-            'prenom' => $data['prenom'],
-            'nom' => $data['nom'],
-            'statut_kyc' => 'en_attente_verification', // Statut temporaire
+            'prenom' => $compteOrangeMoney ? $compteOrangeMoney->prenom : $data['prenom'],
+            'nom' => $compteOrangeMoney ? $compteOrangeMoney->nom : $data['nom'],
+            'email' => $compteOrangeMoney ? $compteOrangeMoney->email : null,
+            'numero_cni' => $compteOrangeMoney ? $compteOrangeMoney->numero_cni : null,
+            'statut_kyc' => $compteOrangeMoney ? 'verifie' : 'en_attente_verification',
         ]);
 
         // Générer OTP
@@ -55,34 +76,91 @@ class AuthService
 
         // Ici, envoyer OTP par SMS (simulé)
 
+        $message = $compteOrangeMoney
+            ? 'Numéro Orange Money vérifié. OTP envoyé par SMS pour finaliser votre inscription.'
+            : 'OTP envoyé par SMS. Veuillez saisir l\'OTP pour finaliser votre inscription.';
+
         return [
             'success' => true,
             'data' => [
                 'idUtilisateur' => $utilisateurTemp->getKey(),
                 'numeroTelephone' => $utilisateurTemp->numero_telephone,
+                'compteOrangeMoney' => $compteOrangeMoney ? true : false,
                 'otpEnvoye' => true,
                 'dateExpiration' => optional($utilisateurTemp->otp_expires_at)?->toIso8601String(),
             ],
-            'message' => 'OTP envoyé par SMS. Veuillez saisir l\'OTP pour finaliser votre inscription.',
+            'message' => $message,
             'status' => 200
         ];
     }
 
     // 1.1.1 Finaliser l'Inscription
-    public function finaliserInscription($numeroTelephone, $codeOTP, $dataSupplementaires)
+    public function finaliserInscription($numeroTelephone, $codeOTP, $dataSupplementaires = null)
     {
-        $utilisateur = Utilisateur::where('numero_telephone', $numeroTelephone)
-                                 ->where('statut_kyc', 'en_attente_verification')
-                                 ->first();
+        $utilisateur = Utilisateur::where('numero_telephone', $numeroTelephone)->first();
 
         if (!$utilisateur) {
             return [
                 'success' => false,
                 'error' => [
                     'code' => 'AUTH_005',
-                    'message' => 'Utilisateur non trouvé ou déjà inscrit'
+                    'message' => 'Utilisateur non trouvé'
                 ],
                 'status' => 404
+            ];
+        }
+
+        // Vérifier si c'est un compte Orange Money existant
+        $compteOrangeMoney = OrangeMoney::verifierExistenceCompte($numeroTelephone);
+
+        if ($compteOrangeMoney && $utilisateur->statut_kyc === 'verifie') {
+            // Compte Orange Money existant - connexion directe
+            if (!$this->otpService->verifyOtp($utilisateur, $codeOTP)) {
+                return [
+                    'success' => false,
+                    'error' => [
+                        'code' => 'AUTH_004',
+                        'message' => 'OTP invalide ou expiré'
+                    ],
+                    'status' => 401
+                ];
+            }
+
+            // Mettre à jour la dernière connexion Orange Money
+            $compteOrangeMoney->mettreAJourConnexion();
+
+            // Générer tokens
+            $tokens = $this->tokenService->generateTokens($utilisateur);
+
+            return [
+                'success' => true,
+                'data' => [
+                    'jetonAcces' => $tokens['accessToken'],
+                    'jetonRafraichissement' => $tokens['refreshToken'],
+                    'utilisateur' => [
+                        'idUtilisateur' => $utilisateur->getKey(),
+                        'numeroTelephone' => $utilisateur->numero_telephone,
+                        'nomComplet' => $utilisateur->prenom . ' ' . $utilisateur->nom,
+                        'email' => $utilisateur->email,
+                        'compteOrangeMoney' => true,
+                        'soldeOrangeMoney' => $compteOrangeMoney->solde,
+                        'idPortefeuille' => optional($utilisateur->portefeuille)->getKey(),
+                    ]
+                ],
+                'message' => 'Connexion réussie avec votre compte Orange Money',
+                'status' => 200
+            ];
+        }
+
+        // Nouveau compte - vérifier le statut en attente
+        if ($utilisateur->statut_kyc !== 'en_attente_verification') {
+            return [
+                'success' => false,
+                'error' => [
+                    'code' => 'AUTH_005',
+                    'message' => 'Utilisateur déjà inscrit'
+                ],
+                'status' => 409
             ];
         }
 
@@ -213,6 +291,12 @@ class AuthService
             ];
         }
 
+        // Mettre à jour la dernière connexion Orange Money si applicable
+        $compteOrangeMoney = OrangeMoney::verifierExistenceCompte($numeroTelephone);
+        if ($compteOrangeMoney) {
+            $compteOrangeMoney->mettreAJourConnexion();
+        }
+
         // Générer tokens
         $tokens = $this->tokenService->generateTokens($utilisateur);
 
@@ -228,6 +312,8 @@ class AuthService
                     'email' => $utilisateur->email,
                     'statutKYC' => $utilisateur->statut_kyc,
                     'biometrieActivee' => $utilisateur->biometrie_activee,
+                    'compteOrangeMoney' => $compteOrangeMoney ? true : false,
+                    'soldeOrangeMoney' => $compteOrangeMoney ? $compteOrangeMoney->solde : null,
                 ]
             ],
             'message' => 'Connexion réussie'

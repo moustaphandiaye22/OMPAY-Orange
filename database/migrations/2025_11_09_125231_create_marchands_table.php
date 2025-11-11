@@ -14,9 +14,11 @@ return new class extends Migration
     {
         Schema::create('marchands', function (Blueprint $table) {
             $table->uuid('id')->primary();
+            $table->string('idMarchand', 50)->unique();
             $table->string('nom', 100);
             $table->string('numero_telephone', 20)->unique();
             $table->string('adresse', 255)->nullable();
+            $table->string('categorie', 50)->nullable();
             $table->string('logo', 255)->nullable();
             $table->boolean('actif')->default(true);
             $table->boolean('accepte_qr')->default(true);

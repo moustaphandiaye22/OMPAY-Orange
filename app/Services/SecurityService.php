@@ -40,32 +40,6 @@ class SecurityService
     }
 
     // Activer la biométrie
-    public function activerBiometrie($utilisateur, $codePin, $jetonBiometrique)
-    {
-        if (!Hash::check($codePin, $utilisateur->code_pin)) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'USER_006',
-                    'message' => 'PIN incorrect'
-                ],
-                'status' => 401
-            ];
-        }
-
-        $utilisateur->update([
-            'biometrie_activee' => true,
-            'jeton_biometrique' => $jetonBiometrique,
-        ]);
-
-        return [
-            'success' => true,
-            'data' => [
-                'biometrieActivee' => true,
-            ],
-            'message' => 'Biométrie activée avec succès'
-        ];
-    }
 
     // Vérifier le PIN
     public function verifierPin($utilisateur, $codePin)

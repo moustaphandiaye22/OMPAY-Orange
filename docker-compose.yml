@@ -26,6 +26,8 @@ services:
       - ompay-network
 
 volumes:
+  vendor:
+  node_modules:
 
 networks:
   ompay-network:
