@@ -14,7 +14,7 @@
             "description": "Serveur de développement"
         },
         {
-            "url": "https://api.ompaysn.com/api",
+            "url": "https://ompay-orange-money.onrender.com",
             "description": "Serveur de production"
         }
     ],

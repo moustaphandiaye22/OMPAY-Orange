@@ -8,14 +8,27 @@ use Illuminate\Http\Request;
 class TrustProxies extends Middleware
 {
     /**
-     * The trusted proxies for this application.
+     * The headers that should be used to detect proxies.
      *
-     * @var array<int, string>|string|null
+     * @var int
      */
-    protected $proxies;
+    /**
+     * Trust all proxies (use with caution). Render and many cloud providers
+     * terminate TLS at the load balancer and forward the original scheme
+     * via X-Forwarded-* headers. Setting proxies to '*' tells Laravel to
+     * trust those headers.
+     *
+     * If you prefer to list specific proxies, replace '*' with an array of
+     * IPs/CIDRs.
+     *
+     * @var array|string|null
+     */
+    protected $proxies = '*';
 
     /**
-     * The headers that should be used to detect proxies.
+     * Use the combined forwarded header bits so Laravel reads forwarded
+     * headers (including X-Forwarded-Proto). Keep explicit bitmask to
+     * avoid relying on HEADER_X_FORWARDED_ALL constant availability.
      *
      * @var int
      */

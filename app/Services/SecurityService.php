@@ -2,48 +2,46 @@
 
 namespace App\Services;
 
+use App\Traits\ServiceResponseTrait;
+use App\Traits\ValidationTrait;
 use Illuminate\Support\Facades\Hash;
 
 class SecurityService
 {
-    // Changer le code PIN
+    use ServiceResponseTrait, ValidationTrait;
+
+    /**
+     * Changer le code PIN de l'utilisateur
+     *
+     * @param mixed $utilisateur
+     * @param string $ancienPin
+     * @param string $nouveauPin
+     * @return array
+     */
     public function changerPin($utilisateur, $ancienPin, $nouveauPin)
     {
-        if (!Hash::check($ancienPin, $utilisateur->code_pin)) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'USER_006',
-                    'message' => 'Ancien PIN incorrect'
-                ],
-                'status' => 401
-            ];
+        if (!$this->validatePin($utilisateur, $ancienPin)) {
+            return $this->errorResponse('USER_006', 'Ancien PIN incorrect', [], 401);
         }
 
         if (Hash::check($nouveauPin, $utilisateur->code_pin)) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'USER_007',
-                    'message' => 'Nouveau PIN identique à l\'ancien'
-                ],
-                'status' => 422
-            ];
+            return $this->errorResponse('USER_007', 'Nouveau PIN identique à l\'ancien', [], 422);
         }
 
         $utilisateur->update(['code_pin' => Hash::make($nouveauPin)]);
 
-        return [
-            'success' => true,
-            'message' => 'Code PIN modifié avec succès'
-        ];
+        return $this->successResponse(null, 'Code PIN modifié avec succès');
     }
 
-    // Activer la biométrie
-
-    // Vérifier le PIN
+    /**
+     * Vérifier le PIN de l'utilisateur
+     *
+     * @param mixed $utilisateur
+     * @param string $codePin
+     * @return bool
+     */
     public function verifierPin($utilisateur, $codePin)
     {
-        return Hash::check($codePin, $utilisateur->code_pin);
+        return $this->validatePin($utilisateur, $codePin);
     }
 }

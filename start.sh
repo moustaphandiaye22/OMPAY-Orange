@@ -24,5 +24,9 @@ php artisan route:cache
 php artisan view:clear
 php artisan view:cache
 
+# Clear cached API documentation and regenerate
+rm -rf storage/api-docs/*
+php artisan l5-swagger:generate
+
 # Start Apache
 apache2-foreground

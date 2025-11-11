@@ -8,6 +8,9 @@ use App\Models\Marchand;
 use App\Models\QRCode;
 use App\Models\CodePaiement;
 use App\Interfaces\PaiementServiceInterface;
+use App\Traits\ServiceResponseTrait;
+use App\Traits\ValidationTrait;
+use App\Traits\DataFormattingTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -15,73 +18,54 @@ use Carbon\Carbon;
 
 class PaiementService implements PaiementServiceInterface
 {
-    // 4.2 Scanner un QR Code
+    use ServiceResponseTrait, ValidationTrait, DataFormattingTrait;
+    /**
+     * Scanner un QR Code
+     *
+     * @param string $donneesQR
+     * @return array
+     */
     public function scannerQR($donneesQR)
     {
         // Parser les données QR (format: OM_PAY_{idMarchand}_{montant}_{timestamp}_{signature})
         $parts = explode('_', $donneesQR);
         if (count($parts) !== 6 || $parts[0] !== 'OM' || $parts[1] !== 'PAY') {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'PAYMENT_003',
-                    'message' => 'QR Code invalide'
-                ],
-                'status' => 422
-            ];
+            return $this->errorResponse('PAYMENT_003', 'QR Code invalide', [], 422);
         }
 
         $idMarchand = $parts[2];
         $montant = (int) $parts[3];
         $timestamp = $parts[4];
-        $signature = $parts[5];
 
         $marchand = Marchand::where('id', $idMarchand)->orWhere('idMarchand', $idMarchand)->first();
         if (!$marchand) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'PAYMENT_001',
-                    'message' => 'Marchand introuvable'
-                ],
-                'status' => 404
-            ];
+            return $this->errorResponse('PAYMENT_001', 'Marchand introuvable', [], 404);
         }
 
         // Vérifier si le QR n'est pas expiré (5 minutes)
         $qrTime = Carbon::createFromTimestamp($timestamp);
         if (Carbon::now()->diffInMinutes($qrTime) > 5) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'PAYMENT_004',
-                    'message' => 'QR Code expiré'
-                ],
-                'status' => 422
-            ];
+            return $this->errorResponse('PAYMENT_004', 'QR Code expiré', [], 422);
         }
 
         $idScan = 'scn_' . Str::random(10);
 
-        return [
-            'success' => true,
-            'data' => [
-                'idScan' => $idScan,
-                'marchand' => [
-                    'idMarchand' => $marchand->idMarchand,
-                    'nom' => $marchand->nom,
-                    'logo' => $marchand->logo,
-                ],
-                'montant' => $montant,
-                'devise' => 'XOF',
-                'dateExpiration' => $qrTime->addMinutes(5)->toIso8601String(),
-                'valide' => true,
-            ],
-            'message' => 'QR Code scanné avec succès'
-        ];
+        return $this->successResponse([
+            'idScan' => $idScan,
+            'marchand' => $this->formatMerchantData($marchand),
+            'montant' => $montant,
+            'devise' => 'XOF',
+            'dateExpiration' => $qrTime->addMinutes(5)->toIso8601String(),
+            'valide' => true,
+        ], 'QR Code scanné avec succès');
     }
 
-    // 4.3 Saisir un Code de Paiement
+    /**
+     * Saisir un Code de Paiement
+     *
+     * @param string $code
+     * @return array
+     */
     public function saisirCode($code)
     {
         $codePaiement = CodePaiement::where('code', $code)
@@ -90,38 +74,29 @@ class PaiementService implements PaiementServiceInterface
                                      ->first();
 
         if (!$codePaiement) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'PAYMENT_006',
-                    'message' => 'Code de paiement invalide'
-                ],
-                'status' => 422
-            ];
+            return $this->errorResponse('PAYMENT_006', 'Code de paiement invalide', [], 422);
         }
 
         $marchand = $codePaiement->marchand;
         $idCode = 'cod_' . Str::random(10);
 
-        return [
-            'success' => true,
-            'data' => [
-                'idCode' => $idCode,
-                'marchand' => [
-                    'idMarchand' => $marchand->idMarchand,
-                    'nom' => $marchand->nom,
-                    'logo' => $marchand->logo,
-                ],
-                'montant' => $codePaiement->montant,
-                'devise' => $codePaiement->devise,
-                'dateExpiration' => optional($codePaiement->dateExpiration)?->toIso8601String(),
-                'valide' => true,
-            ],
-            'message' => 'Code validé avec succès'
-        ];
+        return $this->successResponse([
+            'idCode' => $idCode,
+            'marchand' => $this->formatMerchantData($marchand),
+            'montant' => $codePaiement->montant,
+            'devise' => $codePaiement->devise,
+            'dateExpiration' => optional($codePaiement->dateExpiration)?->toIso8601String(),
+            'valide' => true,
+        ], 'Code validé avec succès');
     }
 
-    // 4.4 Initier un Paiement
+    /**
+     * Initier un Paiement
+     *
+     * @param mixed $utilisateur
+     * @param array $data
+     * @return array
+     */
     public function initierPaiement($utilisateur, $data)
     {
         $marchandId = $data['idMarchand'] ?? $data['id_marchand'] ?? null;
@@ -131,38 +106,17 @@ class PaiementService implements PaiementServiceInterface
         $marchand = Marchand::find($marchandId);
 
         if (!$marchand) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'PAYMENT_001',
-                    'message' => 'Marchand introuvable'
-                ],
-                'status' => 404
-            ];
+            return $this->errorResponse('PAYMENT_001', 'Marchand introuvable', [], 404);
         }
 
         $portefeuille = $utilisateur->portefeuille;
 
         if (!$portefeuille) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'WALLET_001',
-                    'message' => 'Portefeuille introuvable'
-                ],
-                'status' => 404
-            ];
+            return $this->errorResponse('WALLET_001', 'Portefeuille introuvable', [], 404);
         }
 
-        if ($montant === null || $portefeuille->solde < $montant) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'WALLET_001',
-                    'message' => 'Solde insuffisant'
-                ],
-                'status' => 422
-            ];
+        if ($montant === null || !$this->hasSufficientBalance($portefeuille, $montant)) {
+            return $this->errorResponse('WALLET_001', 'Solde insuffisant', [], 422);
         }
 
         // Créer d'abord une transaction liée au portefeuille
@@ -186,84 +140,54 @@ class PaiementService implements PaiementServiceInterface
         $paiement->details_paiement = null;
         $paiement->save();
 
-        return [
-            'success' => true,
-            'data' => [
-                'idPaiement' => $paiement->id,
-                'statut' => $transaction->statut,
-                'marchand' => [
-                    'idMarchand' => $marchand->id_marchand ?? $marchand->id,
-                    'nom' => $marchand->nom,
-                    'logo' => $marchand->logo,
-                ],
-                'montant' => $transaction->montant,
-                'frais' => 0,
-                'montantTotal' => $transaction->montant,
-                'dateExpiration' => optional($transaction->date_transaction)?->addMinutes(5)?->toIso8601String(),
-            ],
-            'message' => 'Veuillez confirmer le paiement avec votre code PIN'
-        ];
+        return $this->successResponse([
+            'idPaiement' => $paiement->id,
+            'statut' => $transaction->statut,
+            'marchand' => $this->formatMerchantData($marchand),
+            'montant' => $transaction->montant,
+            'frais' => 0,
+            'montantTotal' => $transaction->montant,
+            'dateExpiration' => optional($transaction->date_transaction)?->addMinutes(5)?->toIso8601String(),
+        ], 'Veuillez confirmer le paiement avec votre code PIN');
     }
 
-    // 4.5 Confirmer un Paiement
+    /**
+     * Confirmer un Paiement
+     *
+     * @param mixed $utilisateur
+     * @param string $idPaiement
+     * @param string $codePin
+     * @return array
+     */
     public function confirmerPaiement($utilisateur, $idPaiement, $codePin)
     {
         $paiement = Paiement::where('id', $idPaiement)->first();
 
-        if (!$paiement || !$paiement->transaction || !$paiement->transaction->portefeuille || ($paiement->transaction->portefeuille->id_utilisateur ?? null) !== ($utilisateur->id ?? null)) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'PAYMENT_010',
-                    'message' => 'Paiement introuvable ou non autorisé'
-                ],
-                'status' => 404
-            ];
+        if (!$paiement || !$paiement->transaction || !$paiement->transaction->portefeuille ||
+            !$this->userOwnsResource($utilisateur, $paiement->transaction->portefeuille)) {
+            return $this->errorResponse('PAYMENT_010', 'Paiement introuvable ou non autorisé', [], 404);
         }
 
         $transaction = $paiement->transaction;
 
-        if (Carbon::now()->isAfter(optional($transaction->date_transaction)?->addMinutes(5) ?? now())) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'PAYMENT_009',
-                    'message' => 'Paiement expiré'
-                ],
-                'status' => 422
-            ];
+        if ($this->isExpired($transaction)) {
+            return $this->errorResponse('PAYMENT_009', 'Paiement expiré', [], 422);
         }
 
-        if (!Hash::check($codePin, $utilisateur->code_pin ?? $utilisateur->codePin ?? '')) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'USER_006',
-                    'message' => 'Code PIN incorrect'
-                ],
-                'status' => 401
-            ];
+        if (!$this->validatePin($utilisateur, $codePin)) {
+            return $this->errorResponse('USER_006', 'Code PIN incorrect', [], 401);
         }
 
         try {
             $portefeuille = $transaction->portefeuille;
-            $marchand = $paiement->marchand;
 
             // Vérifier que le solde est suffisant (double vérification)
-            if ($portefeuille->solde < $transaction->montant) {
-                return [
-                    'success' => false,
-                    'error' => [
-                        'code' => 'WALLET_001',
-                        'message' => 'Solde insuffisant'
-                    ],
-                    'status' => 422
-                ];
+            if (!$this->hasSufficientBalance($portefeuille, $transaction->montant)) {
+                return $this->errorResponse('WALLET_001', 'Solde insuffisant', [], 422);
             }
 
             // Débiter l'utilisateur
-            $newBalance = $portefeuille->solde - $transaction->montant;
-            $portefeuille->solde = $newBalance;
+            $portefeuille->solde -= $transaction->montant;
             $portefeuille->save();
 
             // Marquer la transaction comme terminée
@@ -274,66 +198,46 @@ class PaiementService implements PaiementServiceInterface
             $paiement->details_paiement = $paiement->details_paiement ?? [];
             $paiement->save();
 
-            $result = [
-                'idTransaction' => $transaction->id,
-                'reference' => $transaction->reference ?? ('OM' . date('YmdHis') . rand(100000, 999999)),
-            ];
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'PAYMENT_011',
-                    'message' => 'Erreur lors de la confirmation du paiement: ' . $e->getMessage()
-                ],
-                'status' => 500
-            ];
-        }
+            $reference = $transaction->reference ?? ('OM' . date('YmdHis') . rand(100000, 999999));
 
-        return [
-            'success' => true,
-            'data' => [
-                'idTransaction' => $result['idTransaction'],
+            return $this->successResponse([
+                'idTransaction' => $transaction->id,
                 'statut' => 'termine',
                 'marchand' => [
                     'nom' => $paiement->marchand->nom,
                     'numeroTelephone' => $paiement->marchand->numero_telephone ?? $paiement->marchand->numeroTelephone ?? null,
                 ],
-                'montant' => $transaction->montant ?? null,
+                'montant' => $transaction->montant,
                 'dateTransaction' => optional($transaction->date_transaction)?->toIso8601String(),
-                'reference' => $result['reference'],
-                'recu' => 'https://cdn.ompay.sn/recus/' . $result['idTransaction'] . '.pdf',
-            ],
-            'message' => 'Paiement effectué avec succès'
-        ];
+                'reference' => $reference,
+                'recu' => 'https://cdn.ompay.sn/recus/' . $transaction->id . '.pdf',
+            ], 'Paiement effectué avec succès');
+
+        } catch (\Exception $e) {
+            return $this->errorResponse('PAYMENT_011', 'Erreur lors de la confirmation du paiement: ' . $e->getMessage(), [], 500);
+        }
     }
 
-        // 4.6 Annuler un Paiement
+    /**
+     * Annuler un Paiement
+     *
+     * @param mixed $utilisateur
+     * @param string $idPaiement
+     * @return array
+     */
     public function annulerPaiement($utilisateur, $idPaiement)
     {
         $paiement = Paiement::where('id', $idPaiement)->first();
 
-        if (!$paiement || !$paiement->transaction || !$paiement->transaction->portefeuille || ($paiement->transaction->portefeuille->id_utilisateur ?? null) !== ($utilisateur->id ?? null)) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'PAYMENT_010',
-                    'message' => 'Paiement introuvable ou non autorisé'
-                ],
-                'status' => 404
-            ];
+        if (!$paiement || !$paiement->transaction || !$paiement->transaction->portefeuille ||
+            !$this->userOwnsResource($utilisateur, $paiement->transaction->portefeuille)) {
+            return $this->errorResponse('PAYMENT_010', 'Paiement introuvable ou non autorisé', [], 404);
         }
 
         $transaction = $paiement->transaction;
 
-        if (Carbon::now()->isAfter(optional($transaction->date_transaction)?->addMinutes(5) ?? now())) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'PAYMENT_009',
-                    'message' => 'Paiement expiré'
-                ],
-                'status' => 422
-            ];
+        if ($this->isExpired($transaction)) {
+            return $this->errorResponse('PAYMENT_009', 'Paiement expiré', [], 422);
         }
 
         // Annuler la transaction si possible
@@ -341,9 +245,6 @@ class PaiementService implements PaiementServiceInterface
             $transaction->annuler();
         }
 
-        return [
-            'success' => true,
-            'message' => 'Paiement annulé avec succès'
-        ];
+        return $this->successResponse(null, 'Paiement annulé avec succès');
     }
 }
