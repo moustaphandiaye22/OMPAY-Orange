@@ -3,27 +3,23 @@
 namespace App\Services;
 
 use App\Models\Utilisateur;
+use App\Traits\ServiceResponseTrait;
+use App\Traits\DataFormattingTrait;
 
 class UserService
 {
-    // Consulter le profil
+    use ServiceResponseTrait, DataFormattingTrait;
+
+    /**
+     * Consulter le profil utilisateur
+     *
+     * @param Utilisateur $utilisateur
+     * @return array
+     */
     public function consulterProfil($utilisateur)
     {
-        return [
-            'success' => true,
-            'data' => [
-                'idUtilisateur' => $utilisateur->getKey(),
-                'numeroTelephone' => $utilisateur->numero_telephone,
-                'prenom' => $utilisateur->prenom,
-                'nom' => $utilisateur->nom,
-                'email' => $utilisateur->email,
-                'numeroCNI' => $utilisateur->numero_cni ?? null,
-                'statutKYC' => $utilisateur->statut_kyc ?? null,
-                'biometrieActivee' => $utilisateur->biometrie_activee ?? false,
-                'dateCreation' => optional($utilisateur->date_creation)?->toIso8601String(),
-                'derniereConnexion' => optional($utilisateur->derniere_connexion)?->toIso8601String(),
-            ]
-        ];
+        return $this->successResponse(
+            $this->formatUserData($utilisateur)
+        );
     }
-
 }

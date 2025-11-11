@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
 use App\Interfaces\PortefeuilleServiceInterface;
 use App\Interfaces\TransfertServiceInterface;
 use App\Interfaces\PaiementServiceInterface;
@@ -38,6 +39,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // If the environment requests HTTPS (FORCE_HTTPS=true) force the URL
+        // generator to build https:// URLs. This helps when the app is behind
+        // a TLS-terminating proxy (like Render) and some packages generate
+        // absolute URLs.
+        if (env('FORCE_HTTPS', false)) {
+            URL::forceScheme('https');
+        }
     }
 }

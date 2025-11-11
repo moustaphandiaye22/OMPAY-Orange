@@ -29,7 +29,13 @@ return [
                 /*
                  * Edit to include full URL in ui for assets
                  */
-                'use_absolute_path' => env('L5_SWAGGER_USE_ABSOLUTE_PATH', true),
+                // When true, l5-swagger will generate absolute URLs for assets
+                // (uses the URL generator which may pick up the request scheme).
+                // For deployments behind TLS-terminating proxies (Render), prefer
+                // using relative paths so the browser loads assets using the
+                // current page scheme (HTTPS). You can still enable absolute
+                // paths by setting the environment variable.
+                'use_absolute_path' => env('L5_SWAGGER_USE_ABSOLUTE_PATH', false),
 
                 /*
                 * Edit to set path where swagger ui assets should be stored

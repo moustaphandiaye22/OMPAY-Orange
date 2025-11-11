@@ -5,52 +5,51 @@ namespace App\Services;
 use App\Models\Portefeuille;
 use App\Models\Transaction;
 use App\Interfaces\PortefeuilleServiceInterface;
+use App\Traits\ServiceResponseTrait;
+use App\Traits\DataFormattingTrait;
 use Carbon\Carbon;
 
 class PortefeuilleService implements PortefeuilleServiceInterface
 {
-    // 2.1 Consulter le Solde
+    use ServiceResponseTrait, DataFormattingTrait;
+    /**
+     * Consulter le solde du portefeuille
+     *
+     * @param mixed $utilisateur
+     * @return array
+     */
     public function consulterSolde($utilisateur)
     {
         $portefeuille = $utilisateur->portefeuille;
 
         if (!$portefeuille) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'WALLET_001',
-                    'message' => 'Portefeuille introuvable'
-                ],
-                'status' => 404
-            ];
+            return $this->errorResponse('WALLET_001', 'Portefeuille introuvable', [], 404);
         }
 
-        return [
-            'success' => true,
-            'data' => [
-                'idPortefeuille' => $portefeuille->id,
-                'solde' => $portefeuille->solde,
-                'soldeDisponible' => $portefeuille->solde,
-                'soldeEnAttente' => 0, // Calculer si nécessaire
-                'devise' => $portefeuille->devise,
-            ]
-        ];
+        return $this->successResponse([
+            'idPortefeuille' => $portefeuille->id,
+            'solde' => $portefeuille->solde,
+            'soldeDisponible' => $portefeuille->solde,
+            'soldeEnAttente' => 0, // Calculer si nécessaire
+            'devise' => $portefeuille->devise,
+        ]);
     }
 
-    // 2.2 Historique des Transactions
+    /**
+     * Historique des transactions
+     *
+     * @param mixed $utilisateur
+     * @param array $filters
+     * @param int $page
+     * @param int $limite
+     * @return array
+     */
     public function historiqueTransactions($utilisateur, $filters, $page, $limite)
     {
         $portefeuille = $utilisateur->portefeuille;
 
         if (!$portefeuille) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'WALLET_001',
-                    'message' => 'Portefeuille introuvable'
-                ],
-                'status' => 404
-            ];
+            return $this->errorResponse('WALLET_001', 'Portefeuille introuvable', [], 404);
         }
 
         $query = Transaction::where('id_portefeuille', $portefeuille->id);
@@ -96,35 +95,30 @@ class PortefeuilleService implements PortefeuilleServiceInterface
                 }
             }
 
-            return [
-                'idTransaction' => $transaction->id,
-                'type' => $transaction->type,
-                'montant' => $transaction->montant,
-                'devise' => $transaction->devise,
+            return $this->formatTransactionData($transaction, [
                 'destinataire' => $destinataire,
                 'marchand' => $marchand,
-                'statut' => $transaction->statut,
-                'dateTransaction' => $transaction->date_transaction ? $transaction->date_transaction->toIso8601String() : null,
-                'reference' => $transaction->reference,
-                'frais' => $transaction->frais,
-            ];
+            ]);
         });
 
-        return [
-            'success' => true,
-            'data' => [
-                'transactions' => $data,
-                'pagination' => [
-                    'pageActuelle' => $transactions->currentPage(),
-                    'totalPages' => $transactions->lastPage(),
-                    'totalElements' => $transactions->total(),
-                    'elementsParPage' => $transactions->perPage(),
-                ]
+        return $this->successResponse([
+            'transactions' => $data,
+            'pagination' => [
+                'pageActuelle' => $transactions->currentPage(),
+                'totalPages' => $transactions->lastPage(),
+                'totalElements' => $transactions->total(),
+                'elementsParPage' => $transactions->perPage(),
             ]
-        ];
+        ]);
     }
 
-        // 2.3 Détails d'une Transaction
+    /**
+     * Détails d'une transaction
+     *
+     * @param mixed $utilisateur
+     * @param string $idTransaction
+     * @return array
+     */
     public function detailsTransaction($utilisateur, $idTransaction)
     {
         $transaction = Transaction::where('id', $idTransaction)
@@ -134,14 +128,7 @@ class PortefeuilleService implements PortefeuilleServiceInterface
                                   ->first();
 
         if (!$transaction) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'WALLET_001',
-                    'message' => 'Transaction introuvable'
-                ],
-                'status' => 404
-            ];
+            return $this->errorResponse('WALLET_001', 'Transaction introuvable', [], 404);
         }
 
         $expediteur = null;
@@ -161,21 +148,10 @@ class PortefeuilleService implements PortefeuilleServiceInterface
             }
         }
 
-        return [
-            'success' => true,
-            'data' => [
-                'idTransaction' => $transaction->id,
-                'type' => $transaction->type,
-                'montant' => $transaction->montant,
-                'devise' => $transaction->devise,
-                'expediteur' => $expediteur,
-                'destinataire' => $destinataire,
-                'statut' => $transaction->statut,
-                'dateTransaction' => $transaction->date_transaction ? $transaction->date_transaction->toIso8601String() : null,
-                'reference' => $transaction->reference,
-                'frais' => $transaction->frais,
-                'note' => $transaction->transfert ? $transaction->transfert->note ?? null : null,
-            ]
-        ];
+        return $this->successResponse($this->formatTransactionData($transaction, [
+            'expediteur' => $expediteur,
+            'destinataire' => $destinataire,
+            'note' => $transaction->transfert ? $transaction->transfert->note ?? null : null,
+        ]));
     }
 }

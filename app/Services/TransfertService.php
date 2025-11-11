@@ -9,6 +9,9 @@ use App\Models\Portefeuille;
 use App\Models\Destinataire;
 use App\Models\OrangeMoney;
 use App\Interfaces\TransfertServiceInterface;
+use App\Traits\ServiceResponseTrait;
+use App\Traits\ValidationTrait;
+use App\Traits\DataFormattingTrait;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -16,8 +19,15 @@ use Carbon\Carbon;
 
 class TransfertService implements TransfertServiceInterface
 {
+    use ServiceResponseTrait, ValidationTrait, DataFormattingTrait;
 
-    // 3.2 Effectuer un Transfert (fusion initier + confirmer)
+    /**
+     * Effectuer un transfert
+     *
+     * @param mixed $utilisateur
+     * @param array $data
+     * @return array
+     */
     public function effectuerTransfert($utilisateur, $data)
     {
         // Vérifier si le destinataire a un compte Orange Money actif ET un compte utilisateur
@@ -25,14 +35,7 @@ class TransfertService implements TransfertServiceInterface
         $destinataireUser = Utilisateur::where('numero_telephone', $data['telephoneDestinataire'])->first();
 
         if (!$compteOrangeMoney || !$destinataireUser) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'TRANSFER_001',
-                    'message' => 'Ce numéro n\'a pas de compte Orange Money'
-                ],
-                'status' => 404
-            ];
+            return $this->errorResponse('TRANSFER_001', 'Ce numéro n\'a pas de compte Orange Money', [], 404);
         }
 
         // Find or create a Destinataire record (table used for stored recipients)
@@ -47,51 +50,24 @@ class TransfertService implements TransfertServiceInterface
         );
 
         if ($destinataireUser->id === $utilisateur->id) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'TRANSFER_003',
-                    'message' => 'Transfert à soi-même interdit'
-                ],
-                'status' => 422
-            ];
+            return $this->errorResponse('TRANSFER_003', 'Transfert à soi-même interdit', [], 422);
         }
+
         $portefeuille = $utilisateur->portefeuille;
 
         if (!$portefeuille) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'WALLET_001',
-                    'message' => 'Portefeuille introuvable'
-                ],
-                'status' => 404
-            ];
+            return $this->errorResponse('WALLET_001', 'Portefeuille introuvable', [], 404);
         }
 
         $frais = $this->calculerFrais($data['montant'] ?? 0);
 
-        if ($portefeuille->solde < (($data['montant'] ?? 0) + $frais)) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'WALLET_001',
-                    'message' => 'Solde insuffisant'
-                ],
-                'status' => 422
-            ];
+        if (!$this->hasSufficientBalance($portefeuille, $data['montant'] ?? 0, $frais)) {
+            return $this->errorResponse('WALLET_001', 'Solde insuffisant', [], 422);
         }
 
         // Vérifier le PIN immédiatement
-        if (!Hash::check($data['codePin'] ?? '', $utilisateur->code_pin ?? '')) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'USER_006',
-                    'message' => 'Code PIN incorrect'
-                ],
-                'status' => 401
-            ];
+        if (!$this->validatePin($utilisateur, $data['codePin'] ?? '')) {
+            return $this->errorResponse('USER_006', 'Code PIN incorrect', [], 401);
         }
 
         // Use a transaction to update balances and create records atomically
@@ -117,14 +93,7 @@ class TransfertService implements TransfertServiceInterface
             }
 
             if (!$portefeuilleDestinataire) {
-                return [
-                    'success' => false,
-                    'error' => [
-                        'code' => 'WALLET_001',
-                        'message' => 'Destinataire sans portefeuille'
-                    ],
-                    'status' => 404
-                ];
+                return $this->errorResponse('WALLET_001', 'Destinataire sans portefeuille', [], 404);
             }
 
             $montantTotal = ($data['montant'] ?? 0) + $frais;
@@ -134,14 +103,7 @@ class TransfertService implements TransfertServiceInterface
             $dest = Portefeuille::where('id', $portefeuilleDestinataire->id)->first();
 
             if (!$exp || !$dest) {
-                return [
-                    'success' => false,
-                    'error' => [
-                        'code' => 'WALLET_001',
-                        'message' => 'Portefeuille introuvable'
-                    ],
-                    'status' => 404
-                ];
+                return $this->errorResponse('WALLET_001', 'Portefeuille introuvable', [], 404);
             }
 
             // Perform arithmetic and save (non-transactional but direct)
@@ -184,38 +146,33 @@ class TransfertService implements TransfertServiceInterface
                 'reference' => $transaction->reference,
             ];
         } catch (\Throwable $e) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'INTERNAL_ERROR',
-                    'message' => 'Erreur lors du transfert: ' . $e->getMessage()
-                ],
-                'status' => 500
-            ];
+            return $this->errorResponse('INTERNAL_ERROR', 'Erreur lors du transfert: ' . $e->getMessage(), [], 500);
         }
 
-        return [
-            'success' => true,
-            'data' => [
-                'idTransaction' => $result['idTransaction'],
-                'idTransfert' => $result['idTransfert'],
-                'statut' => 'reussie',
-                'montant' => $data['montant'] ?? 0,
-                'frais' => $frais,
-                'montantTotal' => ($data['montant'] ?? 0) + $frais,
-                'destinataire' => [
-                    'numeroTelephone' => $data['telephoneDestinataire'],
-                    'nom' => trim(($destinataireUser->prenom ?? '') . ' ' . ($destinataireUser->nom ?? '')),
-                ],
-                'dateTransaction' => Carbon::now()->toIso8601String(),
-                'reference' => $result['reference'],
-                'recu' => 'https://cdn.ompay.sn/recus/' . $result['idTransaction'] . '.pdf',
+        return $this->successResponse([
+            'idTransaction' => $result['idTransaction'],
+            'idTransfert' => $result['idTransfert'],
+            'statut' => 'reussie',
+            'montant' => $data['montant'] ?? 0,
+            'frais' => $frais,
+            'montantTotal' => ($data['montant'] ?? 0) + $frais,
+            'destinataire' => [
+                'numeroTelephone' => $data['telephoneDestinataire'],
+                'nom' => trim(($destinataireUser->prenom ?? '') . ' ' . ($destinataireUser->nom ?? '')),
             ],
-            'message' => 'Transfert effectué avec succès'
-        ];
+            'dateTransaction' => Carbon::now()->toIso8601String(),
+            'reference' => $result['reference'],
+            'recu' => 'https://cdn.ompay.sn/recus/' . $result['idTransaction'] . '.pdf',
+        ], 'Transfert effectué avec succès');
     }
 
-    // 3.4 Annuler un Transfert
+    /**
+     * Annuler un transfert
+     *
+     * @param mixed $utilisateur
+     * @param string $idTransfert
+     * @return array
+     */
     public function annulerTransfert($utilisateur, $idTransfert)
     {
         $transfert = Transfert::where('id', $idTransfert)
@@ -223,36 +180,15 @@ class TransfertService implements TransfertServiceInterface
                               ->first();
 
         if (!$transfert) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'TRANSFER_006',
-                    'message' => 'Transfert introuvable ou déjà annulé'
-                ],
-                'status' => 404
-            ];
+            return $this->errorResponse('TRANSFER_006', 'Transfert introuvable ou déjà annulé', [], 404);
         }
 
         if ($transfert->statut !== 'en_attente_confirmation') {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'TRANSFER_006',
-                    'message' => 'Transfert introuvable ou déjà annulé'
-                ],
-                'status' => 404
-            ];
+            return $this->errorResponse('TRANSFER_006', 'Transfert introuvable ou déjà annulé', [], 404);
         }
 
-        if (Carbon::now()->isAfter($transfert->date_expiration ?? now())) {
-            return [
-                'success' => false,
-                'error' => [
-                    'code' => 'TRANSFER_004',
-                    'message' => 'Transfert expiré'
-                ],
-                'status' => 422
-            ];
+        if ($this->isExpired($transfert)) {
+            return $this->errorResponse('TRANSFER_004', 'Transfert expiré', [], 422);
         }
 
         // Annuler la transaction associée
@@ -263,16 +199,12 @@ class TransfertService implements TransfertServiceInterface
 
         $transfert->update(['statut' => 'annule']);
 
-        return [
-            'success' => true,
-            'message' => 'Transfert annulé avec succès',
-            'data' => [
-                'idTransfert' => $transfert->id,
-                'idTransaction' => $transaction ? $transaction->id : null,
-                'reference' => $transaction ? $transaction->reference : null,
-                'statut' => 'annule'
-            ]
-        ];
+        return $this->successResponse([
+            'idTransfert' => $transfert->id,
+            'idTransaction' => $transaction ? $transaction->id : null,
+            'reference' => $transaction ? $transaction->reference : null,
+            'statut' => 'annule'
+        ], 'Transfert annulé avec succès');
     }
 
     private function calculerFrais($montant)
