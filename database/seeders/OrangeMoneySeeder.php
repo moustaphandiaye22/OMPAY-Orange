@@ -51,6 +51,24 @@ class OrangeMoneySeeder extends Seeder
                 'solde' => 15000,
                 'date_creation_compte' => now()->subMonths(2),
             ],
+            [
+                'numero_telephone' => PhoneNumberHelper::formatNumber('771411251'),
+                'prenom' => 'Moustapha',
+                'nom' => 'Ndiaye',
+                'email' => 'moustapha.ndiaye@email.com',
+                'numero_cni' => '771411251123',
+                'solde' => 100000,
+                'date_creation_compte' => now()->subMonths(1),
+            ],
+            [
+                'numero_telephone' => PhoneNumberHelper::formatNumber('779999999'),
+                'prenom' => 'Test',
+                'nom' => 'User',
+                'email' => 'test.user@email.com',
+                'numero_cni' => '779999999123',
+                'solde' => 50000,
+                'date_creation_compte' => now()->subDays(1),
+            ],
         ];
 
         foreach ($comptes as $compte) {

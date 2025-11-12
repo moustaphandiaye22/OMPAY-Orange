@@ -5,15 +5,17 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Carbon\Carbon;
 
 class ParametresSecurite extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuids;
 
     protected $table = 'parametres_securites';
 
     protected $fillable = [
+        'id',
         'id_utilisateur',
         'biometrie_active',
         'tentatives_echouees',

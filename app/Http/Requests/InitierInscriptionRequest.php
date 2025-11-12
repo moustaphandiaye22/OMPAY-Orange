@@ -25,6 +25,8 @@ class InitierInscriptionRequest extends FormRequest
             'prenom' => 'required|string|min:2|max:50|alpha',
             'nom' => 'required|string|min:2|max:50|alpha',
             'numeroTelephone' => 'required|string|regex:/^\+221[0-9]{9}$/|unique:utilisateurs,numero_telephone',
+            'email' => 'required|email|unique:utilisateurs,email',
+            'numeroCNI' => 'required|string|size:13|regex:/^[0-9]{13}$/',
         ];
     }
 
@@ -50,6 +52,13 @@ class InitierInscriptionRequest extends FormRequest
             'numeroTelephone.string' => 'Le numéro de téléphone doit être une chaîne de caractères.',
             'numeroTelephone.regex' => 'Le numéro de téléphone doit être au format +221XXXXXXXXX.',
             'numeroTelephone.unique' => 'Ce numéro de téléphone est déjà utilisé.',
+            'email.required' => 'L\'adresse email est obligatoire.',
+            'email.email' => 'L\'adresse email doit être valide.',
+            'email.unique' => 'Cette adresse email est déjà utilisée.',
+            'numeroCNI.required' => 'Le numéro CNI est obligatoire.',
+            'numeroCNI.string' => 'Le numéro CNI doit être une chaîne de caractères.',
+            'numeroCNI.size' => 'Le numéro CNI doit contenir exactement 13 caractères.',
+            'numeroCNI.regex' => 'Le numéro CNI doit contenir uniquement des chiffres.',
         ];
     }
 }

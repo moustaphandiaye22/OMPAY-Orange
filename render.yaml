@@ -37,6 +37,12 @@ services:
         value: file
       - key: DB_PASSWORD
         sync: false  # Set this in Render dashboard as environment variable
+      - key: Account_SID
+        sync: false  # Set this in Render dashboard as environment variable
+      - key: AUTH_TOKEN
+        sync: false  # Set this in Render dashboard as environment variable
+      - key: TWILIO_NUMBER
+        sync: false  # Set this in Render dashboard as environment variable
     healthCheckPath: /
     disk:
       name: ompay-disk

@@ -7,9 +7,11 @@ use Illuminate\Support\Facades\URL;
 use App\Interfaces\PortefeuilleServiceInterface;
 use App\Interfaces\TransfertServiceInterface;
 use App\Interfaces\PaiementServiceInterface;
+use App\Interfaces\SmsServiceInterface;
 use App\Services\PortefeuilleService;
 use App\Services\TransfertService;
 use App\Services\PaiementService;
+use App\Services\TwilioSmsService;
 use App\Services\AuthService;
 use App\Services\TokenService;
 use App\Services\OtpService;
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(PortefeuilleServiceInterface::class, PortefeuilleService::class);
         $this->app->bind(TransfertServiceInterface::class, TransfertService::class);
         $this->app->bind(PaiementServiceInterface::class, PaiementService::class);
+        $this->app->bind(SmsServiceInterface::class, TwilioSmsService::class);
 
         // Auth services
         $this->app->bind(AuthService::class, function ($app) {

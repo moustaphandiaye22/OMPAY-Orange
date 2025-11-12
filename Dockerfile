@@ -39,8 +39,8 @@ RUN chmod +x /usr/local/bin/start.sh
 # Copy existing application directory permissions
 COPY --chown=www-data:www-data . /var/www/html
 
-# Create .env file and generate application key
-RUN cp .env.example .env && php artisan key:generate --force --no-interaction
+# Copy production env file and generate application key
+RUN cp .env.production .env && php artisan key:generate --force --no-interaction
 
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html \

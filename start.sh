@@ -12,9 +12,8 @@ fi
 # Run database migrations (if needed)
 php artisan migrate --force
 
-# Clear and cache config
+# Clear config (do not cache in production to allow env vars to take effect)
 php artisan config:clear
-php artisan config:cache
 
 # Clear and cache routes
 php artisan route:clear

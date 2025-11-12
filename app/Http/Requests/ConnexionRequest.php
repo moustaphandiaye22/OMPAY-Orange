@@ -23,7 +23,7 @@ class ConnexionRequest extends FormRequest
     {
         return [
             'numeroTelephone' => 'required|string|regex:/^\+221[0-9]{9}$/',
-            'codePin' => 'required|string|size:4|regex:/^[0-9]{4}$/',
+            'codeOTP' => 'nullable|string|size:6|regex:/^[0-9]{6}$/',
         ];
     }
 
@@ -38,10 +38,9 @@ class ConnexionRequest extends FormRequest
             'numeroTelephone.required' => 'Le numéro de téléphone est requis.',
             'numeroTelephone.string' => 'Le numéro de téléphone doit être une chaîne de caractères.',
             'numeroTelephone.regex' => 'Le numéro de téléphone doit être au format +221XXXXXXXXX.',
-            'codePin.required' => 'Le code PIN est requis.',
-            'codePin.string' => 'Le code PIN doit être une chaîne de caractères.',
-            'codePin.size' => 'Le code PIN doit contenir exactement 4 caractères.',
-            'codePin.regex' => 'Le code PIN doit contenir uniquement des chiffres.',
+            'codeOTP.string' => 'Le code OTP doit être une chaîne de caractères.',
+            'codeOTP.size' => 'Le code OTP doit contenir exactement 6 caractères.',
+            'codeOTP.regex' => 'Le code OTP doit contenir uniquement des chiffres.',
         ];
     }
 }

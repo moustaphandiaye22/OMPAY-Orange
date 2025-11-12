@@ -14,7 +14,7 @@
  *     description="Serveur de développement"
  * ),
  * @OA\Server(
- *     url="https://api.ompaysn.com/api",
+ *     url="https://ompay-orange-money.onrender.com/api",
  *     description="Serveur de production"
  * ),
  * @OA\SecurityScheme(

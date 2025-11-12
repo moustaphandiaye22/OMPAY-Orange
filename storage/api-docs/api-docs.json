@@ -14,7 +14,7 @@
             "description": "Serveur de développement"
         },
         {
-            "url": "https://ompay-orange-money.onrender.com",
+            "url": "https://ompay-orange-money.onrender.com/api",
             "description": "Serveur de production"
         }
     ],
@@ -24,9 +24,9 @@
                 "tags": [
                     "Authentification"
                 ],
-                "summary": "Initier l'inscription d'un nouvel utilisateur",
-                "description": "Crée un compte utilisateur en envoyant un OTP pour vérification",
-                "operationId": "initierInscription",
+                "summary": "Créer un compte utilisateur complet",
+                "description": "Crée un compte utilisateur avec toutes les informations et envoie un OTP pour activation lors de la première connexion",
+                "operationId": "creercompte",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -35,23 +35,36 @@
                                 "required": [
                                     "prenom",
                                     "nom",
-                                    "numeroTelephone"
+                                    "numeroTelephone",
+                                    "email",
+                                    "numeroCNI"
                                 ],
                                 "properties": {
                                     "prenom": {
                                         "description": "Prénom de l'utilisateur",
                                         "type": "string",
-                                        "example": "John"
+                                        "example": "Moustapha"
                                     },
                                     "nom": {
                                         "description": "Nom de l'utilisateur",
                                         "type": "string",
-                                        "example": "Doe"
+                                        "example": "Ndiaye"
                                     },
                                     "numeroTelephone": {
                                         "description": "Numéro de téléphone au format +221XXXXXXXXX",
                                         "type": "string",
-                                        "example": "+221771234567"
+                                        "example": "+221771411251"
+                                    },
+                                    "email": {
+                                        "description": "Adresse email",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "moustapha.ndiaye@email.com"
+                                    },
+                                    "numeroCNI": {
+                                        "description": "Numéro CNI à 13 chiffres",
+                                        "type": "string",
+                                        "example": "7714112511234"
                                     }
                                 },
                                 "type": "object"
@@ -60,8 +73,8 @@
                     }
                 },
                 "responses": {
-                    "200": {
-                        "description": "OTP envoyé avec succès",
+                    "201": {
+                        "description": "Compte créé avec succès, OTP envoyé",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -72,7 +85,7 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Code OTP envoyé avec succès"
+                                            "example": "Compte créé avec succès. Code OTP envoyé par SMS pour activation lors de votre première connexion."
                                         },
                                         "data": {
                                             "properties": {
@@ -82,7 +95,24 @@
                                                 },
                                                 "numeroTelephone": {
                                                     "type": "string",
-                                                    "example": "+221771234567"
+                                                    "example": "+221771411251"
+                                                },
+                                                "nomComplet": {
+                                                    "type": "string",
+                                                    "example": "Moustapha Ndiaye"
+                                                },
+                                                "compteOrangeMoney": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "otpEnvoye": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "dateExpiration": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-11-11T16:21:00Z"
                                                 }
                                             },
                                             "type": "object"
@@ -124,133 +154,9 @@
                                 }
                             }
                         }
-                    }
-                }
-            }
-        },
-        "/auth/finaliser-inscription": {
-            "post": {
-                "tags": [
-                    "Authentification"
-                ],
-                "summary": "Finaliser l'inscription avec le code OTP",
-                "description": "Valide le code OTP et complète l'inscription de l'utilisateur",
-                "operationId": "finaliserInscription",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "numeroTelephone",
-                                    "codeOTP",
-                                    "email",
-                                    "codePin",
-                                    "numeroCNI"
-                                ],
-                                "properties": {
-                                    "numeroTelephone": {
-                                        "description": "Numéro de téléphone",
-                                        "type": "string",
-                                        "example": "+221771234567"
-                                    },
-                                    "codeOTP": {
-                                        "description": "Code OTP à 6 chiffres",
-                                        "type": "string",
-                                        "example": "123456"
-                                    },
-                                    "email": {
-                                        "description": "Adresse email",
-                                        "type": "string",
-                                        "format": "email",
-                                        "example": "john.doe@example.com"
-                                    },
-                                    "codePin": {
-                                        "description": "Code PIN à 4 chiffres",
-                                        "type": "string",
-                                        "example": "1234"
-                                    },
-                                    "numeroCNI": {
-                                        "description": "Numéro CNI à 13 chiffres",
-                                        "type": "string",
-                                        "example": "1234567890123"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Inscription finalisée avec succès",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Inscription finalisée avec succès"
-                                        },
-                                        "data": {
-                                            "properties": {
-                                                "utilisateur": {
-                                                    "properties": {
-                                                        "id": {
-                                                            "type": "string",
-                                                            "example": "uuid"
-                                                        },
-                                                        "prenom": {
-                                                            "type": "string",
-                                                            "example": "John"
-                                                        },
-                                                        "nom": {
-                                                            "type": "string",
-                                                            "example": "Doe"
-                                                        },
-                                                        "numeroTelephone": {
-                                                            "type": "string",
-                                                            "example": "+221771234567"
-                                                        },
-                                                        "email": {
-                                                            "type": "string",
-                                                            "example": "john.doe@example.com"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                },
-                                                "portefeuille": {
-                                                    "properties": {
-                                                        "id": {
-                                                            "type": "string",
-                                                            "example": "uuid"
-                                                        },
-                                                        "solde": {
-                                                            "type": "number",
-                                                            "example": 0
-                                                        },
-                                                        "devise": {
-                                                            "type": "string",
-                                                            "example": "XOF"
-                                                        }
-                                                    },
-                                                    "type": "object"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
                     },
-                    "400": {
-                        "description": "Code OTP invalide ou expiré",
+                    "404": {
+                        "description": "Pas de compte Orange Money",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -263,11 +169,11 @@
                                             "properties": {
                                                 "code": {
                                                     "type": "string",
-                                                    "example": "OTP_INVALID"
+                                                    "example": "AUTH_006"
                                                 },
                                                 "message": {
                                                     "type": "string",
-                                                    "example": "Code OTP invalide ou expiré"
+                                                    "example": "Ce numéro de téléphone n'a pas de compte Orange Money actif"
                                                 }
                                             },
                                             "type": "object"
@@ -302,7 +208,7 @@
                                     "numeroTelephone": {
                                         "description": "Numéro de téléphone",
                                         "type": "string",
-                                        "example": "+221771234567"
+                                        "example": "+221771411251"
                                     },
                                     "codeOTP": {
                                         "description": "Code OTP à 6 chiffres",
@@ -391,7 +297,7 @@
                     "Authentification"
                 ],
                 "summary": "Connexion utilisateur",
-                "description": "Authentifie un utilisateur avec son numéro de téléphone et code PIN",
+                "description": "Authentifie un utilisateur avec son numéro de téléphone. Seuls les utilisateurs ayant un compte Orange Money peuvent se connecter. Un OTP est envoyé par SMS pour vérification.",
                 "operationId": "connexion",
                 "requestBody": {
                     "required": true,
@@ -399,19 +305,13 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "numeroTelephone",
-                                    "codePin"
+                                    "numeroTelephone"
                                 ],
                                 "properties": {
                                     "numeroTelephone": {
                                         "description": "Numéro de téléphone",
                                         "type": "string",
-                                        "example": "+221771234567"
-                                    },
-                                    "codePin": {
-                                        "description": "Code PIN à 4 chiffres",
-                                        "type": "string",
-                                        "example": "1234"
+                                        "example": "+221771411251"
                                     }
                                 },
                                 "type": "object"
@@ -421,7 +321,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Connexion réussie",
+                        "description": "OTP envoyé par SMS",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -432,56 +332,26 @@
                                         },
                                         "message": {
                                             "type": "string",
-                                            "example": "Connexion réussie"
+                                            "example": "Code OTP envoyé par SMS. Veuillez vérifier votre téléphone."
                                         },
                                         "data": {
                                             "properties": {
-                                                "jetonAcces": {
-                                                    "description": "Token d'accès à utiliser pour les requêtes authentifiées",
+                                                "numeroTelephone": {
                                                     "type": "string",
-                                                    "example": "dbBhNGIG5MuJWUJEV4mOjEcCq8nPNCXcH6jZMAnpSe0NsysKzOZCCiv30vyRYcvV"
+                                                    "example": "+221771411251"
                                                 },
-                                                "jetonRafraichissement": {
-                                                    "description": "Token de rafraîchissement pour obtenir un nouveau token",
+                                                "compteOrangeMoney": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "otpEnvoye": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "dateExpiration": {
                                                     "type": "string",
-                                                    "example": "YVX553dKWUKL6zGMWEPSMlQJDuFlC4KDOO0fnTxlfYOAO0T0TY0MFk9wyrX8x9If"
-                                                },
-                                                "utilisateur": {
-                                                    "properties": {
-                                                        "idUtilisateur": {
-                                                            "type": "string",
-                                                            "example": "a053e8c2-225f-4c83-ad2d-610cfec446c7"
-                                                        },
-                                                        "numeroTelephone": {
-                                                            "type": "string",
-                                                            "example": "+221771000001"
-                                                        },
-                                                        "nomComplet": {
-                                                            "type": "string",
-                                                            "example": "Tmp User"
-                                                        },
-                                                        "email": {
-                                                            "type": "string",
-                                                            "example": "tmp.user@example.com"
-                                                        },
-                                                        "statutKYC": {
-                                                            "type": "string",
-                                                            "example": "verifie"
-                                                        },
-                                                        "biometrieActivee": {
-                                                            "type": "boolean",
-                                                            "example": false
-                                                        },
-                                                        "compteOrangeMoney": {
-                                                            "type": "boolean",
-                                                            "example": false
-                                                        },
-                                                        "soldeOrangeMoney": {
-                                                            "type": "string",
-                                                            "example": null
-                                                        }
-                                                    },
-                                                    "type": "object"
+                                                    "format": "date-time",
+                                                    "example": "2025-11-11T15:28:00Z"
                                                 }
                                             },
                                             "type": "object"
@@ -492,8 +362,8 @@
                             }
                         }
                     },
-                    "401": {
-                        "description": "Identifiants invalides",
+                    "404": {
+                        "description": "Utilisateur non trouvé ou pas de compte Orange Money",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -506,11 +376,11 @@
                                             "properties": {
                                                 "code": {
                                                     "type": "string",
-                                                    "example": "INVALID_CREDENTIALS"
+                                                    "example": "AUTH_006"
                                                 },
                                                 "message": {
                                                     "type": "string",
-                                                    "example": "Numéro de téléphone ou code PIN incorrect"
+                                                    "example": "Ce numéro de téléphone n'a pas de compte Orange Money actif"
                                                 }
                                             },
                                             "type": "object"
@@ -697,7 +567,7 @@
                                                         },
                                                         "numeroTelephone": {
                                                             "type": "string",
-                                                            "example": "+221771234567"
+                                                            "example": "+221771411251"
                                                         },
                                                         "email": {
                                                             "type": "string",
@@ -710,104 +580,6 @@
                                                         }
                                                     },
                                                     "type": "object"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/utilisateurs/changer-pin": {
-            "post": {
-                "tags": [
-                    "Authentification"
-                ],
-                "summary": "Changer le code PIN",
-                "description": "Modifie le code PIN de l'utilisateur après vérification de l'ancien PIN",
-                "operationId": "changerPin",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "ancienPin",
-                                    "nouveauPin",
-                                    "confirmationPin"
-                                ],
-                                "properties": {
-                                    "ancienPin": {
-                                        "description": "Ancien code PIN",
-                                        "type": "string",
-                                        "example": "1234"
-                                    },
-                                    "nouveauPin": {
-                                        "description": "Nouveau code PIN",
-                                        "type": "string",
-                                        "example": "5678"
-                                    },
-                                    "confirmationPin": {
-                                        "description": "Confirmation du nouveau code PIN",
-                                        "type": "string",
-                                        "example": "5678"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Code PIN changé avec succès",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Code PIN changé avec succès"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Ancien PIN incorrect",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "error": {
-                                            "properties": {
-                                                "code": {
-                                                    "type": "string",
-                                                    "example": "INVALID_OLD_PIN"
-                                                },
-                                                "message": {
-                                                    "type": "string",
-                                                    "example": "L'ancien code PIN est incorrect"
                                                 }
                                             },
                                             "type": "object"

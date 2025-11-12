@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\Utilisateur;
 use App\Models\Portefeuille;
 use Database\Seeders\PhoneNumberHelper;
@@ -31,7 +32,7 @@ class UtilisateurSeeder extends Seeder
                 ]);
             } catch (\Exception $e) {
                 // Log l'erreur et continuer
-                \Log::error('Erreur lors de la création de l\'utilisateur: ' . $e->getMessage());
+                Log::error('Erreur lors de la création de l\'utilisateur: ' . $e->getMessage());
                 continue;
             }
 
@@ -50,6 +51,34 @@ class UtilisateurSeeder extends Seeder
                 'updated_at' => now(),
             ]);
         }
+
+        // Créer l'utilisateur de test Moustapha
+        $testUser = Utilisateur::create([
+            'numero_telephone' => PhoneNumberHelper::formatNumber('771411251'),
+            'prenom' => 'Moustapha',
+            'nom' => 'Ndiaye',
+            'email' => 'moustapha.ndiaye@email.com',
+            'code_pin' => bcrypt('1234'),
+            'numero_cni' => '771411251123',
+            'statut_kyc' => 'verifie',
+            'biometrie_activee' => true,
+            'date_creation' => now(),
+        ]);
+
+        Portefeuille::create([
+            'id_utilisateur' => $testUser->id,
+            'solde' => 50000,
+            'devise' => 'FCFA',
+        ]);
+
+        DB::table('parametres_securites')->insert([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'id_utilisateur' => $testUser->id,
+            'biometrie_active' => true,
+            'tentatives_echouees' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
         // Créer l'admin
         $admin = Utilisateur::create([

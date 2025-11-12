@@ -2,14 +2,29 @@
 
 namespace App\Services;
 
+use App\Interfaces\SmsServiceInterface;
 use Carbon\Carbon;
 
 class OtpService
 {
+    protected $smsService;
+
+    public function __construct(SmsServiceInterface $smsService)
+    {
+        $this->smsService = $smsService;
+    }
+
     // Générer un OTP
     public function generateOtp()
     {
         return rand(100000, 999999);
+    }
+
+    // Envoyer OTP par SMS
+    public function sendOtpSms($numeroTelephone, $otp)
+    {
+        $message = "Votre code OTP OMPAY est : $otp. Valide pour 5 minutes.";
+        return $this->smsService->sendSms($numeroTelephone, $message);
     }
 
     // Vérifier un OTP
