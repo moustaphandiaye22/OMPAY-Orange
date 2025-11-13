@@ -77,6 +77,16 @@ class Utilisateur extends Model
         return $this->hasMany(Paiement::class, 'id_utilisateur');
     }
 
+    public function qrCodes(): HasMany
+    {
+        return $this->hasMany(QRCode::class, 'id_utilisateur');
+    }
+
+    public function qrCodePersonnel(): HasOne
+    {
+        return $this->hasOne(QRCode::class, 'id_utilisateur')->whereNull('id_marchand');
+    }
+
     // Scopes
     public function scopeActifs($query)
     {

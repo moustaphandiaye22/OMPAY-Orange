@@ -55,7 +55,7 @@ class MarchandSeeder extends Seeder
         foreach ($marchands as $marchandData) {
             $marchandId = DB::table('marchands')->insertGetId(array_merge($marchandData, [
                 'id' => (string) \Illuminate\Support\Str::uuid(),
-                'idMarchand' => 'MCH_' . strtoupper(\Illuminate\Support\Str::random(8)),
+                'idMarchand' => 'MCH' . strtoupper(\Illuminate\Support\Str::random(8)),
                 'categorie' => $this->getRandomCategorie(),
                 'logo' => 'https://cdn.ompay.sn/logos/' . strtolower(str_replace(' ', '_', $marchandData['nom'])) . '.png',
                 'created_at' => now(),
@@ -104,7 +104,7 @@ class MarchandSeeder extends Seeder
 
             $marchandId = DB::table('marchands')->insertGetId([
                 'id' => (string) \Illuminate\Support\Str::uuid(),
-                'idMarchand' => 'MCH_' . strtoupper(\Illuminate\Support\Str::random(8)),
+                'idMarchand' => 'MCH' . strtoupper(\Illuminate\Support\Str::random(8)),
                 'nom' => $this->getRandomMarchandName(),
                 'numero_telephone' => '77' . rand(1000000, 9999999),
                 'adresse' => $this->getRandomAdresse(),

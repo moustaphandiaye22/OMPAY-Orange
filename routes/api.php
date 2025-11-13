@@ -29,6 +29,9 @@ Route::prefix('auth')->group(function () {
 });
 
 Route::middleware(['auth.token', 'rate.limit'])->group(function () {
+    // Compte Dashboard
+    Route::get('compte', [AuthController::class, 'compte']);
+
     // Utilisateur
     Route::prefix('utilisateurs')->group(function () {
         Route::get('profil', [AuthController::class, 'consulterProfil']);
@@ -37,24 +40,20 @@ Route::middleware(['auth.token', 'rate.limit'])->group(function () {
 
     // Portefeuille
     Route::prefix('portefeuille')->group(function () {
-        Route::get('solde', [PortefeuilleController::class, 'consulterSolde']);
-        Route::get('transactions', [PortefeuilleController::class, 'historiqueTransactions']);
-        Route::get('transactions/{idTransaction}', [PortefeuilleController::class, 'detailsTransaction']);
+        Route::post('{id}/solde', [PortefeuilleController::class, 'consulterSolde']);
+        Route::post('{id}/transactions', [PortefeuilleController::class, 'historiqueTransactions']);
+        Route::post('{id}/transactions/{idTransaction}', [PortefeuilleController::class, 'detailsTransaction']);
     });
 
     // Transferts
     Route::prefix('transfert')->group(function () {
         Route::post('effectuer-transfert', [TransfertController::class, 'effectuerTransfert']);
-        Route::delete('{idTransfert}/annuler-transfert', [TransfertController::class, 'annulerTransfert']);
+        Route::delete('{id}/annuler-transfert', [TransfertController::class, 'annulerTransfert']);
     });
 
     // Paiements Marchands
     Route::prefix('paiement')->group(function () {
-        Route::post('scanner-qr', [PaiementController::class, 'scannerQR']);
-        Route::post('saisir-code', [PaiementController::class, 'saisirCode']);
-        Route::post('initier-paiement', [PaiementController::class, 'initierPaiement']);
-        Route::post('{idPaiement}/confirmer-paiement', [PaiementController::class, 'confirmerPaiement']);
-        Route::delete('{idPaiement}/annuler-paiement', [PaiementController::class, 'annulerPaiement']);
+        Route::post('effectuer-paiement', [PaiementController::class, 'effectuerPaiement']);
     });
 
 });

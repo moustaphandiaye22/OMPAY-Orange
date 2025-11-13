@@ -9,8 +9,11 @@ use App\Models\QRCode;
 use App\Traits\ServiceResponseTrait;
 use App\Traits\DataFormattingTrait;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use App\Services\TokenService;
+use App\Services\OtpService;
 
 class AuthService
 {
@@ -33,6 +36,8 @@ class AuthService
      */
     public function initierInscription($data)
     {
+        Log::info('AuthService::initierInscription called', ['numeroTelephone' => $data['numeroTelephone'] ?? 'missing']);
+
         // Vérifier si l'utilisateur existe déjà dans notre système
         $utilisateurExistant = Utilisateur::where('numero_telephone', $data['numeroTelephone'])->first();
 
@@ -70,6 +75,20 @@ class AuthService
             'tentatives_echouees' => 0,
         ]);
 
+        // Créer le QR code personnel de l'utilisateur (pour recevoir des paiements)
+        $qrCodeUtilisateur = $utilisateur->qrCodes()->create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'donnees' => '', // Sera généré lors de l'appel à generer()
+            'date_generation' => Carbon::now(),
+            'date_expiration' => Carbon::now()->addYears(10), // QR code permanent (10 ans)
+            'utilise' => false, // Les QR utilisateur ne sont jamais "utilisés" de la même façon
+        ]);
+
+        // Générer les données du QR code
+        $qrCodeUtilisateur->update([
+            'donnees' => $qrCodeUtilisateur->generer()
+        ]);
+
         // Générer OTP pour activation du compte
         $otp = $this->otpService->generateOtp();
 
@@ -105,6 +124,8 @@ class AuthService
      */
     public function verificationOtp($numeroTelephone, $codeOTP)
     {
+        Log::info('AuthService::verificationOtp called', ['numeroTelephone' => $numeroTelephone]);
+
         $utilisateur = Utilisateur::where('numero_telephone', $numeroTelephone)->first();
 
         if (!$utilisateur || !$this->otpService->verifyOtp($utilisateur, $codeOTP)) {
@@ -123,20 +144,18 @@ class AuthService
         // Générer tokens
         $tokens = $this->tokenService->generateTokens($utilisateur);
 
-        return $this->successResponse([
+        $responseData = [
             'jetonAcces' => $tokens['accessToken'],
-            'jetonRafraichissement' => $tokens['refreshToken'],
-            'utilisateur' => [
-                'idUtilisateur' => $utilisateur->getKey(),
-                'numeroTelephone' => $utilisateur->numero_telephone,
-                'nomComplet' => $utilisateur->prenom . ' ' . $utilisateur->nom,
-                'email' => $utilisateur->email,
-                'statutKYC' => $utilisateur->statut_kyc,
-                'biometrieActivee' => $utilisateur->biometrie_activee,
-                'compteOrangeMoney' => $compteOrangeMoney ? true : false,
-                'soldeOrangeMoney' => $compteOrangeMoney ? $compteOrangeMoney->solde : null,
-            ]
-        ], 'Connexion réussie');
+            'jetonRafraichissement' => $tokens['refreshToken']
+        ];
+
+        Log::info('OTP Verification Success Response', [
+            'numeroTelephone' => $numeroTelephone,
+            'hasUserInfo' => false,
+            'userInfoRemoved' => true
+        ]);
+
+        return $this->successResponse($responseData, 'Connexion réussie');
     }
 
     /**
@@ -148,6 +167,8 @@ class AuthService
      */
     public function connexion($numeroTelephone, $codeOTP = null)
     {
+        Log::info('AuthService::connexion called', ['numeroTelephone' => $numeroTelephone, 'hasCodeOTP' => !is_null($codeOTP)]);
+
         $utilisateur = Utilisateur::where('numero_telephone', $numeroTelephone)->first();
 
         if (!$utilisateur) {
@@ -207,17 +228,7 @@ class AuthService
 
                 return $this->successResponse([
                     'jetonAcces' => $tokens['accessToken'],
-                    'jetonRafraichissement' => $tokens['refreshToken'],
-                    'utilisateur' => [
-                        'idUtilisateur' => $utilisateur->getKey(),
-                        'numeroTelephone' => $utilisateur->numero_telephone,
-                        'nomComplet' => $utilisateur->prenom . ' ' . $utilisateur->nom,
-                        'email' => $utilisateur->email,
-                        'statutKYC' => $utilisateur->statut_kyc,
-                        'biometrieActivee' => $utilisateur->biometrie_activee,
-                        'compteOrangeMoney' => true,
-                        'soldeOrangeMoney' => $compteOrangeMoney->solde,
-                    ]
+                    'jetonRafraichissement' => $tokens['refreshToken']
                 ], 'Compte vérifié avec succès. Connexion réussie.');
             }
         }
@@ -266,17 +277,7 @@ class AuthService
 
             return $this->successResponse([
                 'jetonAcces' => $tokens['accessToken'],
-                'jetonRafraichissement' => $tokens['refreshToken'],
-                'utilisateur' => [
-                    'idUtilisateur' => $utilisateur->getKey(),
-                    'numeroTelephone' => $utilisateur->numero_telephone,
-                    'nomComplet' => $utilisateur->prenom . ' ' . $utilisateur->nom,
-                    'email' => $utilisateur->email,
-                    'statutKYC' => $utilisateur->statut_kyc,
-                    'biometrieActivee' => $utilisateur->biometrie_activee,
-                    'compteOrangeMoney' => true,
-                    'soldeOrangeMoney' => $compteOrangeMoney->solde,
-                ]
+                'jetonRafraichissement' => $tokens['refreshToken']
             ], 'Connexion réussie.');
         }
     }

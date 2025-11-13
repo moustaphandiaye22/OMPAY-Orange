@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Interfaces\TransfertServiceInterface;
-use App\Http\Requests\InitierTransfertRequest;
+use App\Http\Requests\EffectuerTransfertWithUserRequest;
+use App\Http\Requests\AnnulerTransfertWithUserRequest;
+use App\Models\Utilisateur;
 use Illuminate\Http\Request;
 
 /**
@@ -21,14 +23,17 @@ class TransfertController extends Controller
         $this->transfertService = $transfertService;
     }
 
+    // Removed helper method as we use authenticated user
+
 
     /**
      * @OA\Post(
      *     path="/transfert/effectuer-transfert",
      *     summary="Effectuer un transfert",
-     *     description="Initie et confirme un transfert d'argent vers un destinataire",
+     *     description="Effectue un transfert d'argent complet vers un destinataire pour l'utilisateur authentifié",
      *     operationId="effectuerTransfert",
      *     tags={"Transferts"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\JsonContent(
@@ -45,21 +50,22 @@ class TransfertController extends Controller
      *         description="Transfert effectué avec succès",
      *         @OA\JsonContent(
      *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Transfert effectué avec succès"),
      *             @OA\Property(property="data", type="object",
-     *                 @OA\Property(property="transfert", type="object",
-     *                     @OA\Property(property="id", type="string", example="uuid"),
-     *                     @OA\Property(property="reference", type="string", example="TRF123456789"),
-     *                     @OA\Property(property="montant", type="number", example=5000),
-     *                     @OA\Property(property="frais", type="number", example=100),
-     *                     @OA\Property(property="montantTotal", type="number", example=5100),
-     *                     @OA\Property(property="destinataire", type="object",
-     *                         @OA\Property(property="nom", type="string", example="Admin Orange Money"),
-     *                         @OA\Property(property="numeroTelephone", type="string", example="+221771234567")
-     *                     ),
-     *                     @OA\Property(property="dateCreation", type="string", format="date-time", example="2025-11-10T12:00:00Z")
-     *                 )
-     *             )
+     *                 @OA\Property(property="idTransaction", type="string", example="65d75949-a025-4d38-812e-7ffb45b00012"),
+     *                 @OA\Property(property="idTransfert", type="string", example="b81c4b38-bd28-4ed2-a014-aa6d410af243"),
+     *                 @OA\Property(property="statut", type="string", example="reussie"),
+     *                 @OA\Property(property="montant", type="integer", example=1000),
+     *                 @OA\Property(property="frais", type="integer", example=0),
+     *                 @OA\Property(property="montantTotal", type="integer", example=1000),
+     *                 @OA\Property(property="destinataire", type="object",
+     *                     @OA\Property(property="numeroTelephone", type="string", example="+221771234567"),
+     *                     @OA\Property(property="nom", type="string", example="Admin Orange Money")
+     *                 ),
+     *                 @OA\Property(property="dateTransaction", type="string", format="date-time", example="2025-11-12T21:49:06+00:00"),
+     *                 @OA\Property(property="reference", type="string", example="OM20251112214905902318"),
+     *                 @OA\Property(property="recu", type="string", example="https://cdn.ompay.sn/recus/65d75949-a025-4d38-812e-7ffb45b00012.pdf")
+     *             ),
+     *             @OA\Property(property="message", type="string", example="Transfert effectué avec succès")
      *         )
      *     ),
      *     @OA\Response(
@@ -72,19 +78,15 @@ class TransfertController extends Controller
      *                 @OA\Property(property="message", type="string", example="Solde insuffisant pour effectuer ce transfert")
      *             )
      *         )
-     *     ),
-     *     security={{"bearerAuth": {}}}
+     *     )
      * )
      */
     // 3.2 Effectuer un Transfert (fusion initier + confirmer)
-    public function effectuerTransfert(InitierTransfertRequest $request)
+    public function effectuerTransfert(EffectuerTransfertWithUserRequest $request)
     {
         try {
             $utilisateur = $request->user();
             $data = $request->validated();
-
-            // Ajouter le code PIN aux données validées
-            $data['codePin'] = $request->codePin;
 
             $result = $this->transfertService->effectuerTransfert($utilisateur, $data);
             return $this->responseFromResult($result);
@@ -102,13 +104,14 @@ class TransfertController extends Controller
 
     /**
      * @OA\Delete(
-     *     path="/transfert/{idTransfert}/annuler-transfert",
+     *     path="/transfert/{id}/annuler-transfert",
      *     summary="Annuler un transfert",
-     *     description="Annule un transfert en attente",
+     *     description="Annule un transfert en attente pour l'utilisateur authentifié",
      *     operationId="annulerTransfert",
      *     tags={"Transferts"},
+     *     security={{"bearerAuth": {}}},
      *     @OA\Parameter(
-     *         name="idTransfert",
+     *         name="id",
      *         in="path",
      *         description="ID du transfert à annuler",
      *         required=true,
@@ -133,14 +136,24 @@ class TransfertController extends Controller
      *             )
      *         )
      *     ),
-     *     security={{"bearerAuth": {}}}
+     *     @OA\Response(
+     *         response=404,
+     *         description="Transfert non trouvé",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="error", type="object",
+     *                 @OA\Property(property="code", type="string", example="TRANSFER_NOT_FOUND"),
+     *                 @OA\Property(property="message", type="string", example="Transfert non trouvé")
+     *             )
+     *         )
+     *     )
      * )
      */
     // 3.4 Annuler un Transfert
-    public function annulerTransfert(Request $request, $idTransfert)
+    public function annulerTransfert(Request $request, $id)
     {
         // Validation de l'UUID
-        if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $idTransfert)) {
+        if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id)) {
             return $this->responseFromResult([
                 'success' => false,
                 'error' => [
@@ -154,7 +167,7 @@ class TransfertController extends Controller
         $utilisateur = $request->user();
 
         try {
-            $result = $this->transfertService->annulerTransfert($utilisateur, $idTransfert);
+            $result = $this->transfertService->annulerTransfert($utilisateur, $id);
             return $this->responseFromResult($result);
         } catch (\Exception $e) {
             return $this->responseFromResult([

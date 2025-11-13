@@ -5,11 +5,13 @@ namespace App\Http\Controllers;
 use App\Services\AuthService;
 use App\Services\UserService;
 use App\Services\SecurityService;
+use App\Services\PortefeuilleService;
 use App\Http\Requests\InitierInscriptionRequest;
 use App\Http\Requests\VerificationOtpRequest;
 use App\Http\Requests\ConnexionRequest;
 use App\Http\Requests\RafraichirTokenRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * @OA\Tag(
@@ -22,15 +24,18 @@ class AuthController extends Controller
     protected $authService;
     protected $userService;
     protected $securityService;
+    protected $portefeuilleService;
 
     public function __construct(
         AuthService $authService,
         UserService $userService,
-        SecurityService $securityService
+        SecurityService $securityService,
+        PortefeuilleService $portefeuilleService
     ) {
         $this->authService = $authService;
         $this->userService = $userService;
         $this->securityService = $securityService;
+        $this->portefeuilleService = $portefeuilleService;
     }
 
     /**
@@ -310,6 +315,114 @@ class AuthController extends Controller
 
     /**
      * @OA\Get(
+     *     path="/compte",
+     *     summary="Consulter le dashboard du compte",
+     *     description="Récupère les informations du dashboard : profil utilisateur, détails du compte et transactions récentes",
+     *     operationId="consulterCompte",
+     *     tags={"Authentification"},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dashboard récupéré avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="data", type="object",
+     *                 @OA\Property(property="utilisateur", type="object",
+     *                     @OA\Property(property="id", type="string", example="uuid"),
+     *                     @OA\Property(property="nom", type="string", example="Moustapha Ndiaye"),
+     *                     @OA\Property(property="telephone", type="string", example="+221771411251"),
+     *                     @OA\Property(property="qrCode", type="object", nullable=true,
+     *                         @OA\Property(property="id", type="string", example="uuid"),
+     *                         @OA\Property(property="donnees", type="string", example="JSON string containing QR code data"),
+     *                         @OA\Property(property="dateGeneration", type="string", format="date-time", example="2025-11-13T09:00:00+00:00")
+     *                     )
+     *                 ),
+     *                 @OA\Property(property="compte", type="object",
+     *                     @OA\Property(property="id", type="string", example="uuid"),
+     *                     @OA\Property(property="solde", type="number", example=50000),
+     *                     @OA\Property(property="numero", type="string", example="771411251")
+     *                 ),
+     *                 @OA\Property(property="transactions", type="array",
+     *                     @OA\Items(
+     *                         @OA\Property(property="idTransaction", type="string", example="uuid"),
+     *                         @OA\Property(property="montant", type="number", example=1000),
+     *                         @OA\Property(property="statut", type="string", example="reussie"),
+     *                         @OA\Property(property="dateTransaction", type="string", format="date-time", example="2025-11-10T12:00:00Z")
+     *                     )
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=404,
+     *         description="Portefeuille introuvable",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=false),
+     *             @OA\Property(property="error", type="object",
+     *                 @OA\Property(property="code", type="string", example="WALLET_001"),
+     *                 @OA\Property(property="message", type="string", example="Portefeuille introuvable")
+     *             )
+     *         )
+     *     ),
+     *     security={{"bearerAuth": {}}}
+     * )
+     */
+    // 1.6.1 Consulter Compte (Dashboard)
+    public function compte(Request $request)
+    {
+        Log::info('AuthController::compte called', ['user_id' => $request->user()->id ?? null]);
+
+        $utilisateur = $request->user();
+
+        // Données utilisateur
+        $userResult = $this->userService->consulterProfil($utilisateur);
+        if (!$userResult['success']) {
+            Log::error('Failed to get user profile', $userResult);
+            return $this->responseFromResult($userResult);
+        }
+
+        // Données portefeuille
+        $portefeuilleResult = $this->portefeuilleService->consulterSolde($utilisateur);
+        if (!$portefeuilleResult['success']) {
+            Log::error('Failed to get wallet data', $portefeuilleResult);
+            return $this->responseFromResult($portefeuilleResult);
+        }
+
+        // Transactions récentes (page 1, limite 10)
+        $transactionResult = $this->portefeuilleService->historiqueTransactions($utilisateur, [], 1, 10);
+        if (!$transactionResult['success']) {
+            Log::error('Failed to get transactions', $transactionResult);
+            return $this->responseFromResult($transactionResult);
+        }
+
+        // Récupérer le QR code personnel
+        $qrCode = $utilisateur->qrCodePersonnel;
+
+        $data = [
+            'utilisateur' => [
+                'id' => $userResult['data']['idUtilisateur'],
+                'nom' => $userResult['data']['nom'],
+                'telephone' => $userResult['data']['numeroTelephone'],
+                'qrCode' => $qrCode ? [
+                    'id' => $qrCode->id,
+                    'donnees' => $qrCode->donnees,
+                    'dateGeneration' => $qrCode->date_generation->toIso8601String(),
+                ] : null,
+            ],
+            'compte' => [
+                'solde' => $portefeuilleResult['data']['solde'],
+                'numero' => substr($utilisateur->numero_telephone, -9), // Derniers 9 chiffres
+                'id' => $portefeuilleResult['data']['idPortefeuille'],
+            ],
+            'transactions' => $transactionResult['data']['transactions'],
+        ];
+
+        Log::info('AuthController::compte completed successfully', ['user_id' => $utilisateur->id]);
+
+        return $this->successResponse($data, 'Dashboard récupéré avec succès');
+    }
+
+    /**
+     * @OA\Get(
      *     path="/utilisateurs/profil",
      *     summary="Consulter le profil utilisateur",
      *     description="Récupère les informations du profil de l'utilisateur connecté",
@@ -342,5 +455,6 @@ class AuthController extends Controller
         $result = $this->userService->consulterProfil($utilisateur);
         return $this->responseFromResult($result);
     }
+
 
 }

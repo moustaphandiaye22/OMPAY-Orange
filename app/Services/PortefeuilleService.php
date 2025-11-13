@@ -8,6 +8,7 @@ use App\Interfaces\PortefeuilleServiceInterface;
 use App\Traits\ServiceResponseTrait;
 use App\Traits\DataFormattingTrait;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class PortefeuilleService implements PortefeuilleServiceInterface
 {
@@ -29,8 +30,6 @@ class PortefeuilleService implements PortefeuilleServiceInterface
         return $this->successResponse([
             'idPortefeuille' => $portefeuille->id,
             'solde' => $portefeuille->solde,
-            'soldeDisponible' => $portefeuille->solde,
-            'soldeEnAttente' => 0, // Calculer si nécessaire
             'devise' => $portefeuille->devise,
         ]);
     }
@@ -73,7 +72,9 @@ class PortefeuilleService implements PortefeuilleServiceInterface
         $transactions = $query->orderBy('date_transaction', 'desc')
                               ->paginate($limite, ['*'], 'page', $page);
 
-        $data = $transactions->map(function ($transaction) {
+        // Le paginator retourne un LengthAwarePaginator : il faut opérer sur sa collection
+        $self = $this;
+        $collection = $transactions->getCollection()->map(function ($transaction) use ($self) {
             $destinataire = null;
             $marchand = null;
 
@@ -82,7 +83,7 @@ class PortefeuilleService implements PortefeuilleServiceInterface
                 if ($transfert) {
                     $destinataire = [
                         'numeroTelephone' => $transfert->destinataire?->numero_telephone ?? $transfert->numero_destinataire ?? null,
-                        'nom' => $transfert->nom_destinataire ?? $transfert->destinataire?->prenom . ' ' . $transfert->destinataire?->nom,
+                        'nom' => $transfert->nom_destinataire ?? ($transfert->destinataire?->prenom . ' ' . $transfert->destinataire?->nom),
                     ];
                 }
             } elseif ($transaction->type === 'paiement') {
@@ -95,11 +96,14 @@ class PortefeuilleService implements PortefeuilleServiceInterface
                 }
             }
 
-            return $this->formatTransactionData($transaction, [
+            return $self->formatTransactionData($transaction, [
                 'destinataire' => $destinataire,
                 'marchand' => $marchand,
             ]);
-        });
+        })->values();
+
+        // Transformer en tableau pour sérialisation JSON
+        $data = $collection->toArray();
 
         return $this->successResponse([
             'transactions' => $data,
@@ -121,6 +125,7 @@ class PortefeuilleService implements PortefeuilleServiceInterface
      */
     public function detailsTransaction($utilisateur, $idTransaction)
     {
+        Log::info('PortefeuilleService::detailsTransaction called', ['idTransaction' => $idTransaction, 'is_set' => isset($idTransaction), 'type' => gettype($idTransaction)]);
         $transaction = Transaction::where('id', $idTransaction)
                                   ->whereHas('portefeuille', function ($q) use ($utilisateur) {
                                       $q->where('id_utilisateur', $utilisateur->id);

@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class SaisirCodeRequest extends FormRequest
+class ConsulterSoldeRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,7 +22,7 @@ class SaisirCodeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'code' => 'required|string|min:1|max:10',
+            // No body validation needed, using authenticated user
         ];
     }
 
@@ -34,10 +34,6 @@ class SaisirCodeRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'code.required' => 'Le code est requis.',
-            'code.string' => 'Le code doit être une chaîne de caractères.',
-            'code.min' => 'Le code doit contenir au moins 1 caractère.',
-            'code.max' => 'Le code ne peut pas dépasser 10 caractères.',
         ];
     }
 }
