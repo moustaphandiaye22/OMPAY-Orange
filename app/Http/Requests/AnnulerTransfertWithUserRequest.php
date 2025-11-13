@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ScannerQRRequest extends FormRequest
+class AnnulerTransfertWithUserRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -22,7 +22,7 @@ class ScannerQRRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'donneesQR' => 'required|string',
+            // No body validation needed
         ];
     }
 
@@ -34,8 +34,6 @@ class ScannerQRRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'donneesQR.required' => 'Les données QR sont requises.',
-            'donneesQR.string' => 'Les données QR doivent être une chaîne de caractères.',
         ];
     }
 }

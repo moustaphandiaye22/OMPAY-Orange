@@ -66,13 +66,28 @@ class QRCode extends Model
     // Methods
     public function generer(): string
     {
-        // Générer le contenu du QR code (simplifié)
-        return json_encode([
-            'id' => $this->id,
-            'marchand' => $this->marchand->nom,
-            'montant' => $this->montant,
-            'date_expiration' => $this->date_expiration->timestamp,
-        ]);
+        // Générer le contenu du QR code selon le type
+        if ($this->id_marchand) {
+            // QR code marchand (avec montant et expiration)
+            return json_encode([
+                'type' => 'marchand',
+                'id' => $this->id,
+                'marchand' => $this->marchand->nom,
+                'montant' => $this->montant,
+                'date_expiration' => $this->date_expiration->timestamp,
+            ]);
+        } elseif ($this->id_utilisateur) {
+            // QR code utilisateur (pour recevoir des paiements)
+            return json_encode([
+                'type' => 'utilisateur',
+                'id' => $this->id,
+                'utilisateur' => $this->utilisateur->numero_telephone,
+                'nom' => $this->utilisateur->prenom . ' ' . $this->utilisateur->nom,
+                'date_generation' => $this->date_generation->timestamp,
+            ]);
+        }
+
+        return '';
     }
 
     public static function decoder(string $donnees): ?array
@@ -88,6 +103,12 @@ class QRCode extends Model
 
     public function valider(): bool
     {
+        // Les QR codes utilisateur n'expirent pas, seulement vérification d'utilisation
+        if ($this->id_utilisateur) {
+            return !$this->utilise;
+        }
+
+        // Les QR codes marchand expirent et peuvent être utilisés une fois
         return !$this->utilise && $this->date_expiration > now();
     }
 

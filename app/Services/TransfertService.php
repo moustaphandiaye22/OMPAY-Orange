@@ -81,13 +81,13 @@ class TransfertService implements TransfertServiceInterface
             if (isset($destinataireUser->portefeuille)) {
                 $portefeuilleDestinataire = $destinataireUser->portefeuille;
             } else {
-                // Créer un portefeuille temporaire pour le destinataire Orange Money
+                // Créer un portefeuille pour le destinataire utilisateur
                 $portefeuilleDestinataire = Portefeuille::firstOrCreate(
-                    ['id_utilisateur' => $compteOrangeMoney->id],
+                    ['id_utilisateur' => $destinataireUser->id],
                     [
                         'id' => (string) Str::uuid(),
-                        'solde' => $compteOrangeMoney->solde ?? 0,
-                        'devise' => $compteOrangeMoney->devise ?? 'XOF'
+                        'solde' => 0,
+                        'devise' => 'XOF'
                     ]
                 );
             }
