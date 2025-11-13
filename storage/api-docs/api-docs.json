@@ -1,0 +1,1859 @@
+{
+    "openapi": "3.0.0",
+    "info": {
+        "title": "OMPAY Orange Money API",
+        "description": "API pour l'application Orange Money - OMPAY",
+        "contact": {
+            "email": "support@orangemoney.sn"
+        },
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "http://localhost:8000/api",
+            "description": "Serveur de développement"
+        },
+        {
+            "url": "https://ompay-orange-money.onrender.com/api",
+            "description": "Serveur de production"
+        }
+    ],
+    "paths": {
+        "/auth/creercompte": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Créer un compte utilisateur complet",
+                "description": "Crée un compte utilisateur avec toutes les informations et envoie un OTP pour activation lors de la première connexion",
+                "operationId": "creercompte",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "prenom",
+                                    "nom",
+                                    "numeroTelephone",
+                                    "email",
+                                    "numeroCNI"
+                                ],
+                                "properties": {
+                                    "prenom": {
+                                        "description": "Prénom de l'utilisateur",
+                                        "type": "string",
+                                        "example": "Moustapha"
+                                    },
+                                    "nom": {
+                                        "description": "Nom de l'utilisateur",
+                                        "type": "string",
+                                        "example": "Ndiaye"
+                                    },
+                                    "numeroTelephone": {
+                                        "description": "Numéro de téléphone au format +221XXXXXXXXX",
+                                        "type": "string",
+                                        "example": "+221771411251"
+                                    },
+                                    "email": {
+                                        "description": "Adresse email",
+                                        "type": "string",
+                                        "format": "email",
+                                        "example": "moustapha.ndiaye@email.com"
+                                    },
+                                    "numeroCNI": {
+                                        "description": "Numéro CNI à 13 chiffres",
+                                        "type": "string",
+                                        "example": "7714112511234"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Compte créé avec succès, OTP envoyé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Compte créé avec succès. Code OTP envoyé par SMS pour activation lors de votre première connexion."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "idUtilisateur": {
+                                                    "type": "string",
+                                                    "example": "uuid"
+                                                },
+                                                "numeroTelephone": {
+                                                    "type": "string",
+                                                    "example": "+221771411251"
+                                                },
+                                                "nomComplet": {
+                                                    "type": "string",
+                                                    "example": "Moustapha Ndiaye"
+                                                },
+                                                "compteOrangeMoney": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "otpEnvoye": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "dateExpiration": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-11-11T16:21:00Z"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Erreur de validation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "VALIDATION_ERROR"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Données invalides"
+                                                },
+                                                "details": {
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Pas de compte Orange Money",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "AUTH_006"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Ce numéro de téléphone n'a pas de compte Orange Money actif"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/verification-otp": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Vérifier le code OTP pour connexion",
+                "description": "Valide le code OTP pour permettre la connexion d'un utilisateur existant",
+                "operationId": "verificationOtp",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "numeroTelephone",
+                                    "codeOTP"
+                                ],
+                                "properties": {
+                                    "numeroTelephone": {
+                                        "description": "Numéro de téléphone",
+                                        "type": "string",
+                                        "example": "+221771411251"
+                                    },
+                                    "codeOTP": {
+                                        "description": "Code OTP à 6 chiffres",
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP validé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Code OTP validé"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "token": {
+                                                    "type": "string",
+                                                    "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                                                },
+                                                "refreshToken": {
+                                                    "type": "string",
+                                                    "example": "refresh_token_here"
+                                                },
+                                                "expiresIn": {
+                                                    "type": "integer",
+                                                    "example": 3600
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Code OTP invalide",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "OTP_INVALID"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Code OTP invalide ou expiré"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/connexion": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Connexion utilisateur",
+                "description": "Authentifie un utilisateur avec son numéro de téléphone. Seuls les utilisateurs ayant un compte Orange Money peuvent se connecter. Un OTP est envoyé par SMS pour chaque connexion.",
+                "operationId": "connexion",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "numeroTelephone"
+                                ],
+                                "properties": {
+                                    "numeroTelephone": {
+                                        "description": "Numéro de téléphone",
+                                        "type": "string",
+                                        "example": "+221771411251"
+                                    },
+                                    "codeOTP": {
+                                        "description": "Code OTP à 6 chiffres (requis pour finaliser la connexion)",
+                                        "type": "string",
+                                        "example": "123456"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "OTP envoyé par SMS ou connexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "oneOf": [
+                                        {
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Code OTP envoyé par SMS. Veuillez vérifier votre téléphone."
+                                                },
+                                                "data": {
+                                                    "properties": {
+                                                        "numeroTelephone": {
+                                                            "type": "string",
+                                                            "example": "+221771411251"
+                                                        },
+                                                        "compteOrangeMoney": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "otpEnvoye": {
+                                                            "type": "boolean",
+                                                            "example": true
+                                                        },
+                                                        "dateExpiration": {
+                                                            "type": "string",
+                                                            "format": "date-time",
+                                                            "example": "2025-11-11T15:28:00Z"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        {
+                                            "properties": {
+                                                "success": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Connexion réussie."
+                                                },
+                                                "data": {
+                                                    "properties": {
+                                                        "jetonAcces": {
+                                                            "type": "string",
+                                                            "example": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+                                                        },
+                                                        "jetonRafraichissement": {
+                                                            "type": "string",
+                                                            "example": "refresh_token_here"
+                                                        },
+                                                        "utilisateur": {
+                                                            "properties": {
+                                                                "idUtilisateur": {
+                                                                    "type": "string",
+                                                                    "example": "uuid"
+                                                                },
+                                                                "numeroTelephone": {
+                                                                    "type": "string",
+                                                                    "example": "+221771411251"
+                                                                },
+                                                                "nomComplet": {
+                                                                    "type": "string",
+                                                                    "example": "Moustapha Ndiaye"
+                                                                },
+                                                                "email": {
+                                                                    "type": "string",
+                                                                    "example": "moustapha.ndiaye@email.com"
+                                                                },
+                                                                "statutKYC": {
+                                                                    "type": "string",
+                                                                    "example": "verifie"
+                                                                },
+                                                                "biometrieActivee": {
+                                                                    "type": "boolean",
+                                                                    "example": false
+                                                                },
+                                                                "compteOrangeMoney": {
+                                                                    "type": "boolean",
+                                                                    "example": true
+                                                                },
+                                                                "soldeOrangeMoney": {
+                                                                    "type": "number",
+                                                                    "example": 50000
+                                                                }
+                                                            },
+                                                            "type": "object"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Utilisateur non trouvé ou pas de compte Orange Money",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "AUTH_006"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Ce numéro de téléphone n'a pas de compte Orange Money actif"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "OTP invalide",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "AUTH_004"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "OTP invalide ou expiré"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/rafraichir": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Rafraîchir le token d'accès",
+                "description": "Génère un nouveau token d'accès à partir du refresh token",
+                "operationId": "rafraichirToken",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "jetonRafraichissement"
+                                ],
+                                "properties": {
+                                    "jetonRafraichissement": {
+                                        "description": "Token de rafraîchissement",
+                                        "type": "string",
+                                        "example": "refresh_token_here"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Token rafraîchi avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Token rafraîchi"
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "jetonAcces": {
+                                                    "type": "string",
+                                                    "example": "dbBhNGIG5MuJWUJEV4mOjEcCq8nPNCXcH6jZMAnpSe0NsysKzOZCCiv30vyRYcvV"
+                                                },
+                                                "jetonRafraichissement": {
+                                                    "type": "string",
+                                                    "example": "YVX553dKWUKL6zGMWEPSMlQJDuFlC4KDOO0fnTxlfYOAO0T0TY0MFk9wyrX8x9If"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Token de rafraîchissement invalide",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "INVALID_REFRESH_TOKEN"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Token de rafraîchissement invalide"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/auth/deconnexion": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Déconnexion utilisateur",
+                "description": "Invalide le token d'accès actuel",
+                "operationId": "deconnexion",
+                "responses": {
+                    "200": {
+                        "description": "Déconnexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Déconnexion réussie"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/compte": {
+            "get": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Consulter le dashboard du compte",
+                "description": "Récupère les informations du dashboard : profil utilisateur, détails du compte et transactions récentes",
+                "operationId": "consulterCompte",
+                "responses": {
+                    "200": {
+                        "description": "Dashboard récupéré avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "utilisateur": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "example": "uuid"
+                                                        },
+                                                        "nom": {
+                                                            "type": "string",
+                                                            "example": "Moustapha Ndiaye"
+                                                        },
+                                                        "telephone": {
+                                                            "type": "string",
+                                                            "example": "+221771411251"
+                                                        },
+                                                        "qrCode": {
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "string",
+                                                                    "example": "uuid"
+                                                                },
+                                                                "donnees": {
+                                                                    "type": "string",
+                                                                    "example": "JSON string containing QR code data"
+                                                                },
+                                                                "dateGeneration": {
+                                                                    "type": "string",
+                                                                    "format": "date-time",
+                                                                    "example": "2025-11-13T09:00:00+00:00"
+                                                                }
+                                                            },
+                                                            "type": "object",
+                                                            "nullable": true
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "compte": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "example": "uuid"
+                                                        },
+                                                        "solde": {
+                                                            "type": "number",
+                                                            "example": 50000
+                                                        },
+                                                        "numero": {
+                                                            "type": "string",
+                                                            "example": "771411251"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "transactions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "idTransaction": {
+                                                                "type": "string",
+                                                                "example": "uuid"
+                                                            },
+                                                            "montant": {
+                                                                "type": "number",
+                                                                "example": 1000
+                                                            },
+                                                            "statut": {
+                                                                "type": "string",
+                                                                "example": "reussie"
+                                                            },
+                                                            "dateTransaction": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2025-11-10T12:00:00Z"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Portefeuille introuvable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "WALLET_001"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Portefeuille introuvable"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/utilisateurs/profil": {
+            "get": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Consulter le profil utilisateur",
+                "description": "Récupère les informations du profil de l'utilisateur connecté",
+                "operationId": "consulterProfil",
+                "responses": {
+                    "200": {
+                        "description": "Profil récupéré avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "utilisateur": {
+                                                    "properties": {
+                                                        "id": {
+                                                            "type": "string",
+                                                            "example": "uuid"
+                                                        },
+                                                        "prenom": {
+                                                            "type": "string",
+                                                            "example": "John"
+                                                        },
+                                                        "nom": {
+                                                            "type": "string",
+                                                            "example": "Doe"
+                                                        },
+                                                        "numeroTelephone": {
+                                                            "type": "string",
+                                                            "example": "+221771411251"
+                                                        },
+                                                        "email": {
+                                                            "type": "string",
+                                                            "example": "john.doe@example.com"
+                                                        },
+                                                        "dateCreation": {
+                                                            "type": "string",
+                                                            "format": "date-time",
+                                                            "example": "2025-11-10T12:00:00Z"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/paiement/effectuer-paiement": {
+            "post": {
+                "tags": [
+                    "Paiements"
+                ],
+                "summary": "Effectuer un paiement",
+                "description": "Effectue un paiement complet en une seule opération. Supporte les paiements par QR code, code de paiement ou numéro de téléphone.",
+                "operationId": "effectuerPaiement",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "idUtilisateur",
+                                    "montant",
+                                    "devise",
+                                    "codePin",
+                                    "modePaiement"
+                                ],
+                                "properties": {
+                                    "idUtilisateur": {
+                                        "description": "ID de l'utilisateur",
+                                        "type": "string",
+                                        "format": "uuid",
+                                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                                    },
+                                    "montant": {
+                                        "description": "Montant du paiement",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 5000
+                                    },
+                                    "devise": {
+                                        "description": "Devise",
+                                        "type": "string",
+                                        "example": "XOF"
+                                    },
+                                    "codePin": {
+                                        "description": "Code PIN de confirmation",
+                                        "type": "string",
+                                        "example": "1234"
+                                    },
+                                    "modePaiement": {
+                                        "description": "Mode de paiement",
+                                        "type": "string",
+                                        "enum": [
+                                            "qr_code",
+                                            "code",
+                                            "telephone"
+                                        ],
+                                        "example": "qr_code"
+                                    },
+                                    "donneesQR": {
+                                        "description": "Données du QR code (requis si modePaiement = qr_code)",
+                                        "type": "string",
+                                        "example": "OM_PAY_MCHABCDEFGH_500_1762980617_signature"
+                                    },
+                                    "code": {
+                                        "description": "Code de paiement (requis si modePaiement = code)",
+                                        "type": "string",
+                                        "example": "VADURH"
+                                    },
+                                    "numeroTelephone": {
+                                        "description": "Numéro de téléphone du marchand (requis si modePaiement = telephone)",
+                                        "type": "string",
+                                        "example": "772345678"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Paiement effectué avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "idTransaction": {
+                                                    "type": "string",
+                                                    "example": "5718e7d5-620e-421c-bff5-f241e228b143"
+                                                },
+                                                "statut": {
+                                                    "type": "string",
+                                                    "example": "termine"
+                                                },
+                                                "marchand": {
+                                                    "properties": {
+                                                        "nom": {
+                                                            "type": "string",
+                                                            "example": "Boutique Orange"
+                                                        },
+                                                        "numeroTelephone": {
+                                                            "type": "string",
+                                                            "example": "772345678"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "montant": {
+                                                    "type": "string",
+                                                    "example": "500.00"
+                                                },
+                                                "dateTransaction": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-11-12T21:31:27+00:00"
+                                                },
+                                                "reference": {
+                                                    "type": "string",
+                                                    "example": "OM20251112213127143829"
+                                                },
+                                                "recu": {
+                                                    "type": "string",
+                                                    "example": "https://cdn.ompay.sn/recus/5718e7d5-620e-421c-bff5-f241e228b143.pdf"
+                                                },
+                                                "modePaiement": {
+                                                    "type": "string",
+                                                    "example": "telephone"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Paiement effectué avec succès"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Code PIN incorrect",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "USER_006"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Code PIN incorrect"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Marchand ou utilisateur introuvable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "PAYMENT_001"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Marchand introuvable"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Solde insuffisant ou données invalides",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "WALLET_001"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Solde insuffisant"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/portefeuille/{id}/solde": {
+            "post": {
+                "tags": [
+                    "Portefeuille"
+                ],
+                "summary": "Consulter le solde du portefeuille",
+                "description": "Récupère le solde actuel du portefeuille de l'utilisateur authentifié",
+                "operationId": "consulterSolde",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID du portefeuille",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Solde récupéré avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "idPortefeuille": {
+                                                    "type": "string",
+                                                    "format": "uuid",
+                                                    "example": "a0552b7e-869b-4063-8163-f91ead609587"
+                                                },
+                                                "solde": {
+                                                    "type": "string",
+                                                    "example": "41000.00"
+                                                },
+                                                "devise": {
+                                                    "type": "string",
+                                                    "example": "FCFA"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Portefeuille non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "ACCESS_DENIED"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Portefeuille non trouvé ou accès refusé"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/portefeuille/{id}/transactions": {
+            "post": {
+                "tags": [
+                    "Portefeuille"
+                ],
+                "summary": "Historique des transactions",
+                "description": "Récupère l'historique des transactions du portefeuille de l'utilisateur authentifié avec pagination et filtres",
+                "operationId": "historiqueTransactions",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID du portefeuille",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "page": {
+                                        "description": "Numéro de la page",
+                                        "type": "integer",
+                                        "default": 1,
+                                        "minimum": 1,
+                                        "example": 1
+                                    },
+                                    "limite": {
+                                        "description": "Nombre d'éléments par page",
+                                        "type": "integer",
+                                        "default": 20,
+                                        "maximum": 100,
+                                        "minimum": 1,
+                                        "example": 20
+                                    },
+                                    "type": {
+                                        "description": "Type de transaction",
+                                        "type": "string",
+                                        "enum": [
+                                            "transfert",
+                                            "paiement",
+                                            "tous"
+                                        ],
+                                        "example": "transfert"
+                                    },
+                                    "dateDebut": {
+                                        "description": "Date de début (format Y-m-d)",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-11-01"
+                                    },
+                                    "dateFin": {
+                                        "description": "Date de fin (format Y-m-d)",
+                                        "type": "string",
+                                        "format": "date",
+                                        "example": "2025-11-30"
+                                    },
+                                    "statut": {
+                                        "description": "Statut de la transaction",
+                                        "type": "string",
+                                        "enum": [
+                                            "en_attente",
+                                            "termine",
+                                            "echoue",
+                                            "annule"
+                                        ],
+                                        "example": "termine"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Historique récupéré avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "transactions": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "properties": {
+                                                            "idTransaction": {
+                                                                "type": "string",
+                                                                "example": "65d75949-a025-4d38-812e-7ffb45b00012"
+                                                            },
+                                                            "reference": {
+                                                                "type": "string",
+                                                                "example": "OM20251112214905902318"
+                                                            },
+                                                            "montant": {
+                                                                "type": "string",
+                                                                "example": "1000.00"
+                                                            },
+                                                            "frais": {
+                                                                "type": "string",
+                                                                "example": "0.00"
+                                                            },
+                                                            "montantTotal": {
+                                                                "type": "integer",
+                                                                "example": 1000
+                                                            },
+                                                            "devise": {
+                                                                "type": "string",
+                                                                "example": "XOF"
+                                                            },
+                                                            "statut": {
+                                                                "type": "string",
+                                                                "example": "reussie"
+                                                            },
+                                                            "dateTransaction": {
+                                                                "type": "string",
+                                                                "format": "date-time",
+                                                                "example": "2025-11-12T21:49:05+00:00"
+                                                            },
+                                                            "destinataire": {
+                                                                "properties": {
+                                                                    "numeroTelephone": {
+                                                                        "type": "string",
+                                                                        "example": "+221771234567"
+                                                                    },
+                                                                    "nom": {
+                                                                        "type": "string",
+                                                                        "example": "Admin Orange Money"
+                                                                    }
+                                                                },
+                                                                "type": "object"
+                                                            },
+                                                            "marchand": {
+                                                                "properties": {
+                                                                    "nom": {
+                                                                        "type": "string",
+                                                                        "example": "Boutique Orange"
+                                                                    },
+                                                                    "categorie": {
+                                                                        "type": "string",
+                                                                        "example": "Alimentation"
+                                                                    }
+                                                                },
+                                                                "type": "object",
+                                                                "nullable": true
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "pagination": {
+                                                    "properties": {
+                                                        "pageActuelle": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "totalPages": {
+                                                            "type": "integer",
+                                                            "example": 1
+                                                        },
+                                                        "totalElements": {
+                                                            "type": "integer",
+                                                            "example": 8
+                                                        },
+                                                        "elementsParPage": {
+                                                            "type": "integer",
+                                                            "example": 20
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Portefeuille non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "ACCESS_DENIED"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Portefeuille non trouvé ou accès refusé"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/portefeuille/{id}/transactions/{idTransaction}": {
+            "post": {
+                "tags": [
+                    "Portefeuille"
+                ],
+                "summary": "Détails d'une transaction",
+                "description": "Récupère les détails complets d'une transaction spécifique pour le portefeuille de l'utilisateur authentifié",
+                "operationId": "detailsTransaction",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID du portefeuille",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "idTransaction",
+                        "in": "path",
+                        "description": "ID de la transaction",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Détails de la transaction récupérés avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "idTransaction": {
+                                                    "type": "string",
+                                                    "example": "65d75949-a025-4d38-812e-7ffb45b00012"
+                                                },
+                                                "reference": {
+                                                    "type": "string",
+                                                    "example": "OM20251112214905902318"
+                                                },
+                                                "montant": {
+                                                    "type": "string",
+                                                    "example": "1000.00"
+                                                },
+                                                "frais": {
+                                                    "type": "string",
+                                                    "example": "0.00"
+                                                },
+                                                "montantTotal": {
+                                                    "type": "integer",
+                                                    "example": 1000
+                                                },
+                                                "devise": {
+                                                    "type": "string",
+                                                    "example": "XOF"
+                                                },
+                                                "statut": {
+                                                    "type": "string",
+                                                    "example": "reussie"
+                                                },
+                                                "dateTransaction": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-11-12T21:49:05+00:00"
+                                                },
+                                                "expediteur": {
+                                                    "properties": {
+                                                        "numeroTelephone": {
+                                                            "type": "string",
+                                                            "example": "+221771411251"
+                                                        },
+                                                        "nom": {
+                                                            "type": "string",
+                                                            "example": "Moustapha Ndiaye"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "destinataire": {
+                                                    "properties": {
+                                                        "numeroTelephone": {
+                                                            "type": "string",
+                                                            "example": "+221771234567"
+                                                        },
+                                                        "nom": {
+                                                            "type": "string",
+                                                            "example": "Admin Orange Money"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "note": {
+                                                    "type": "string",
+                                                    "example": "Test transfer"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Transaction ou portefeuille non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "TRANSACTION_NOT_FOUND"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Transaction non trouvée"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/transfert/effectuer-transfert": {
+            "post": {
+                "tags": [
+                    "Transferts"
+                ],
+                "summary": "Effectuer un transfert",
+                "description": "Effectue un transfert d'argent complet vers un destinataire pour l'utilisateur authentifié",
+                "operationId": "effectuerTransfert",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "telephoneDestinataire",
+                                    "montant",
+                                    "devise",
+                                    "codePin"
+                                ],
+                                "properties": {
+                                    "telephoneDestinataire": {
+                                        "description": "Numéro de téléphone du destinataire",
+                                        "type": "string",
+                                        "example": "+221771234567"
+                                    },
+                                    "montant": {
+                                        "description": "Montant à transférer",
+                                        "type": "number",
+                                        "format": "float",
+                                        "example": 5000
+                                    },
+                                    "devise": {
+                                        "description": "Devise du transfert",
+                                        "type": "string",
+                                        "enum": [
+                                            "FCFA",
+                                            "XOF"
+                                        ],
+                                        "example": "XOF"
+                                    },
+                                    "note": {
+                                        "description": "Note optionnelle",
+                                        "type": "string",
+                                        "example": "Paiement loyer"
+                                    },
+                                    "codePin": {
+                                        "description": "Code PIN de confirmation",
+                                        "type": "string",
+                                        "example": "1234"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Transfert effectué avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "idTransaction": {
+                                                    "type": "string",
+                                                    "example": "65d75949-a025-4d38-812e-7ffb45b00012"
+                                                },
+                                                "idTransfert": {
+                                                    "type": "string",
+                                                    "example": "b81c4b38-bd28-4ed2-a014-aa6d410af243"
+                                                },
+                                                "statut": {
+                                                    "type": "string",
+                                                    "example": "reussie"
+                                                },
+                                                "montant": {
+                                                    "type": "integer",
+                                                    "example": 1000
+                                                },
+                                                "frais": {
+                                                    "type": "integer",
+                                                    "example": 0
+                                                },
+                                                "montantTotal": {
+                                                    "type": "integer",
+                                                    "example": 1000
+                                                },
+                                                "destinataire": {
+                                                    "properties": {
+                                                        "numeroTelephone": {
+                                                            "type": "string",
+                                                            "example": "+221771234567"
+                                                        },
+                                                        "nom": {
+                                                            "type": "string",
+                                                            "example": "Admin Orange Money"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "dateTransaction": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "example": "2025-11-12T21:49:06+00:00"
+                                                },
+                                                "reference": {
+                                                    "type": "string",
+                                                    "example": "OM20251112214905902318"
+                                                },
+                                                "recu": {
+                                                    "type": "string",
+                                                    "example": "https://cdn.ompay.sn/recus/65d75949-a025-4d38-812e-7ffb45b00012.pdf"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Transfert effectué avec succès"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Solde insuffisant ou code PIN incorrect",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "INSUFFICIENT_BALANCE"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Solde insuffisant pour effectuer ce transfert"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/transfert/{id}/annuler-transfert": {
+            "delete": {
+                "tags": [
+                    "Transferts"
+                ],
+                "summary": "Annuler un transfert",
+                "description": "Annule un transfert en attente pour l'utilisateur authentifié",
+                "operationId": "annulerTransfert",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID du transfert à annuler",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Transfert annulé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Transfert annulé avec succès"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Transfert ne peut pas être annulé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "CANNOT_CANCEL_TRANSFER"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Ce transfert ne peut pas être annulé"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Transfert non trouvé",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": false
+                                        },
+                                        "error": {
+                                            "properties": {
+                                                "code": {
+                                                    "type": "string",
+                                                    "example": "TRANSFER_NOT_FOUND"
+                                                },
+                                                "message": {
+                                                    "type": "string",
+                                                    "example": "Transfert non trouvé"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "bearerFormat": "JWT",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Authentification",
+            "description": "Endpoints pour l'authentification et la gestion des utilisateurs"
+        },
+        {
+            "name": "Paiements",
+            "description": "Endpoints pour gérer les paiements marchands"
+        },
+        {
+            "name": "Portefeuille",
+            "description": "Endpoints pour la gestion du portefeuille et des transactions"
+        },
+        {
+            "name": "Transferts",
+            "description": "Endpoints pour les transferts d'argent entre utilisateurs"
+        }
+    ]
+}

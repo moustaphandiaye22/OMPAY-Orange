@@ -1,0 +1,50 @@
+services:
+  - type: web
+    name: ompay-laravel
+    runtime: image
+    image:
+      url: moustaphafullstacker/ompay-orange-money:latest
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_URL
+        value: https://ompay-orange-money.onrender.com
+      - key: L5_SWAGGER_USE_ABSOLUTE_PATH
+        value: "false"
+      - key: FORCE_HTTPS
+        value: "true"
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        value: ep-wispy-union-adcens7o-pooler.c-2.us-east-1.aws.neon.tech
+      - key: DB_PORT
+        value: 5432
+      - key: DB_DATABASE
+        value: neondb
+      - key: DB_USERNAME
+        value: neondb_owner
+      - key: DB_SSLMODE
+        value: require
+      - key: DB_CHANNEL_BINDING
+        value: require
+      - key: CACHE_DRIVER
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: SESSION_DRIVER
+        value: file
+      - key: DB_PASSWORD
+        sync: false  # Set this in Render dashboard as environment variable
+      - key: Account_SID
+        sync: false  # Set this in Render dashboard as environment variable
+      - key: AUTH_TOKEN
+        sync: false  # Set this in Render dashboard as environment variable
+      - key: TWILIO_NUMBER
+        sync: false  # Set this in Render dashboard as environment variable
+    healthCheckPath: /
+    disk:
+      name: ompay-disk
+      mountPath: /var/www/html/storage
+      sizeGB: 1

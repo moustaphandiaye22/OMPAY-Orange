@@ -1,0 +1,53 @@
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\URL;
+use App\Interfaces\PortefeuilleServiceInterface;
+use App\Interfaces\TransfertServiceInterface;
+use App\Interfaces\PaiementServiceInterface;
+use App\Interfaces\SmsServiceInterface;
+use App\Services\PortefeuilleService;
+use App\Services\TransfertService;
+use App\Services\PaiementService;
+use App\Services\TwilioSmsService;
+use App\Services\AuthService;
+use App\Services\TokenService;
+use App\Services\OtpService;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        $this->app->bind(PortefeuilleServiceInterface::class, PortefeuilleService::class);
+        $this->app->bind(TransfertServiceInterface::class, TransfertService::class);
+        $this->app->bind(PaiementServiceInterface::class, PaiementService::class);
+        $this->app->bind(SmsServiceInterface::class, TwilioSmsService::class);
+
+        // Auth services
+        $this->app->bind(AuthService::class, function ($app) {
+            return new AuthService(
+                $app->make(TokenService::class),
+                $app->make(OtpService::class)
+            );
+        });
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        // If the environment requests HTTPS (FORCE_HTTPS=true) force the URL
+        // generator to build https:// URLs. This helps when the app is behind
+        // a TLS-terminating proxy (like Render) and some packages generate
+        // absolute URLs.
+        if (env('FORCE_HTTPS', false)) {
+            URL::forceScheme('https');
+        }
+    }
+}
