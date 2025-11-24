@@ -15,10 +15,10 @@ return new class extends Migration
         Schema::create('transactions', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->foreignUuid('id_portefeuille')->constrained('portefeuilles')->onDelete('cascade');
-            $table->enum('type', ['transfert', 'paiement']);
+            $table->string('type', 50)->default('paiement'); // transfert ou paiement
             $table->decimal('montant', 15, 2);
             $table->string('devise', 3)->default('FCFA');
-            $table->enum('statut', ['en_attente', 'en_cours', 'reussie', 'echouee', 'annulee'])->default('en_attente');
+            $table->string('statut', 20)->default('en_attente'); // en_attente, en_cours, reussie, echouee, annulee
             $table->decimal('frais', 10, 2)->default(0);
             $table->string('reference', 50)->unique();
             $table->timestamp('date_transaction')->useCurrent();

@@ -29,8 +29,9 @@ class PortefeuilleService implements PortefeuilleServiceInterface
 
         return $this->successResponse([
             'idPortefeuille' => $portefeuille->id,
-            'solde' => $portefeuille->solde,
-            'devise' => $portefeuille->devise,
+            'idUtilisateur' => $portefeuille->id_utilisateur ?? $utilisateur->id,
+            'solde' => (float) ($portefeuille->solde ?? 0),
+            'devise' => $portefeuille->devise ?? 'FCFA',
         ]);
     }
 

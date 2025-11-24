@@ -112,17 +112,7 @@ class PaiementController extends Controller
     // 4.1 Effectuer un Paiement (fusion initier + confirmer)
     public function effectuerPaiement(EffectuerPaiementRequest $request)
     {
-        $utilisateur = $this->getUtilisateurById($request->idUtilisateur);
-        if (!$utilisateur) {
-            return $this->responseFromResult([
-                'success' => false,
-                'error' => [
-                    'code' => 'USER_NOT_FOUND',
-                    'message' => 'Utilisateur non trouvé'
-                ],
-                'status' => 404
-            ]);
-        }
+        $utilisateur = $request->user();
 
         $data = $request->validated();
         unset($data['idUtilisateur']); // Remove idUtilisateur from data passed to service

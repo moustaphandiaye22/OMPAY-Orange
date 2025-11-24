@@ -23,7 +23,7 @@ trait DataFormattingTrait
             'nom' => $user->nom,
             'email' => $user->email,
             'numeroCNI' => $user->numero_cni ?? null,
-            'statutKYC' => $user->statut_kyc ?? null,
+            'statutKYC' => $user->statut_kyc ?? 'non_verifie',
             'biometrieActivee' => $user->biometrie_activee ?? false,
             'dateCreation' => optional($user->date_creation)?->toIso8601String(),
             'derniereConnexion' => optional($user->derniere_connexion)?->toIso8601String(),
@@ -59,6 +59,8 @@ trait DataFormattingTrait
     {
         $data = [
             'idTransaction' => $transaction->id,
+            'idPortefeuille' => $transaction->id_portefeuille,
+            'type' => $transaction->type,
             'reference' => $transaction->reference,
             'montant' => $transaction->montant,
             'frais' => $transaction->frais ?? 0,

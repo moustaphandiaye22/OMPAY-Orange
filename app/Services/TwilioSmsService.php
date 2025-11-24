@@ -24,11 +24,20 @@ class TwilioSmsService implements SmsServiceInterface
      */
     public function sendSms(string $to, string $message): bool
     {
+        // En mode développement, simuler l'envoi SMS
+        if (app()->environment('local')) {
+            Log::info('SMS simulé (mode développement)', [
+                'to' => $to,
+                'message' => $message
+            ]);
+            return true;
+        }
+
         try {
             $this->twilio->messages->create(
                 $to,
                 [
-                    
+
                     'from' => env('TWILIO_NUMBER'),
                     'body' => $message
                 ]

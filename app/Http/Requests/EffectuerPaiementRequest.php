@@ -22,7 +22,6 @@ class EffectuerPaiementRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'idUtilisateur' => 'required|string|uuid',
             'montant' => 'required|numeric|min:50|max:500000',
             'devise' => 'required|string|size:3',
             'codePin' => 'required|string|size:4|regex:/^[0-9]+$/',
