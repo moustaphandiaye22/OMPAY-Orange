@@ -14,6 +14,7 @@ class QRCode extends Model
     protected $table = 'qr_codes';
 
     protected $fillable = [
+        'id',
         'id_marchand',
         'id_utilisateur',
         'donnees',
@@ -77,14 +78,8 @@ class QRCode extends Model
                 'date_expiration' => $this->date_expiration->timestamp,
             ]);
         } elseif ($this->id_utilisateur) {
-            // QR code utilisateur (pour recevoir des paiements)
-            return json_encode([
-                'type' => 'utilisateur',
-                'id' => $this->id,
-                'utilisateur' => $this->utilisateur->numero_telephone,
-                'nom' => $this->utilisateur->prenom . ' ' . $this->utilisateur->nom,
-                'date_generation' => $this->date_generation->timestamp,
-            ]);
+            // QR code utilisateur (pour recevoir des paiements) - retourne seulement le numéro de téléphone
+            return $this->utilisateur->numero_telephone;
         }
 
         return '';
@@ -92,13 +87,22 @@ class QRCode extends Model
 
     public static function decoder(string $donnees): ?array
     {
+        // Essayer de décoder comme JSON d'abord (pour les QR marchands)
         $decoded = json_decode($donnees, true);
 
-        if (!$decoded || !isset($decoded['id'])) {
-            return null;
+        if ($decoded && isset($decoded['type'])) {
+            return $decoded;
         }
 
-        return $decoded;
+        // Si ce n'est pas du JSON, vérifier si c'est un numéro de téléphone (QR utilisateur)
+        if (preg_match('/^\+?221[0-9]{9}$/', $donnees)) {
+            return [
+                'type' => 'utilisateur',
+                'numero_telephone' => $donnees,
+            ];
+        }
+
+        return null;
     }
 
     public function valider(): bool

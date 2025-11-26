@@ -26,8 +26,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Copy existing application directory contents
 COPY . /var/www/html
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Install PHP dependencies (including dev dependencies for Swagger)
+RUN composer install --optimize-autoloader --no-interaction
 
 # Install Node.js dependencies and build assets
 RUN npm install && npm run build

@@ -844,6 +844,69 @@
                 ]
             }
         },
+        "/utilisateurs/changer-pin": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Changer le code PIN",
+                "description": "Permet à l'utilisateur de changer son code PIN",
+                "operationId": "changerPin",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "ancienPin",
+                                    "nouveauPin"
+                                ],
+                                "properties": {
+                                    "ancienPin": {
+                                        "description": "Ancien code PIN",
+                                        "type": "string",
+                                        "example": "1234"
+                                    },
+                                    "nouveauPin": {
+                                        "description": "Nouveau code PIN",
+                                        "type": "string",
+                                        "example": "5678"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Code PIN modifié avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Code PIN modifié avec succès"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/paiement/effectuer-paiement": {
             "post": {
                 "tags": [

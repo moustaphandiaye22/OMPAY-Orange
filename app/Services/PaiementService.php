@@ -146,14 +146,15 @@ class PaiementService implements PaiementServiceInterface
                     $marchand = Marchand::where('idMarchand', $marchandId)->first();
                     $modeDetails = ['type' => 'qr_code', 'donneesQR' => $donneesQR];
                 } elseif ($decodedQR['type'] === 'utilisateur') {
-                    // QR code utilisateur
-                    $qrCodeUtilisateur = QRCode::find($decodedQR['id']);
-                    if (!$qrCodeUtilisateur || !$qrCodeUtilisateur->valider()) {
-                        return $this->errorResponse('PAYMENT_003', 'QR Code invalide ou expiré', [], 422);
+                    // QR code utilisateur (contient le numéro de téléphone)
+                    $numeroTelephone = $decodedQR['numero_telephone'];
+                    $destinataireUtilisateur = \App\Models\Utilisateur::where('numero_telephone', $numeroTelephone)->first();
+
+                    if (!$destinataireUtilisateur) {
+                        return $this->errorResponse('PAYMENT_003', 'Utilisateur destinataire introuvable', [], 422);
                     }
 
-                    $destinataireUtilisateur = $qrCodeUtilisateur->utilisateur;
-                    $modeDetails = ['type' => 'qr_code_utilisateur', 'donneesQR' => $donneesQR, 'idDestinataire' => $destinataireUtilisateur->id];
+                    $modeDetails = ['type' => 'qr_code_utilisateur', 'donneesQR' => $donneesQR, 'numeroTelephone' => $numeroTelephone];
                 }
                 break;
 

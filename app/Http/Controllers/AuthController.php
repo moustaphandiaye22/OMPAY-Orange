@@ -470,7 +470,7 @@ class AuthController extends Controller
                 'dateCreation' => $userResult['data']['dateCreation'],
                 'derniereConnexion' => $userResult['data']['derniereConnexion'],
                 'qrCode' => $qrCode ? [
-                    'id' => $qrCode->id,
+                    'id' => (string) $qrCode->id,
                     'donnees' => $qrCode->donnees,
                     'dateGeneration' => $qrCode->date_generation->toIso8601String(),
                 ] : null,
@@ -521,6 +521,45 @@ class AuthController extends Controller
     {
         $utilisateur = $request->user();
         $result = $this->userService->consulterProfil($utilisateur);
+        return $this->responseFromResult($result);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/utilisateurs/changer-pin",
+     *     summary="Changer le code PIN",
+     *     description="Permet à l'utilisateur de changer son code PIN",
+     *     operationId="changerPin",
+     *     tags={"Authentification"},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"ancienPin","nouveauPin"},
+     *             @OA\Property(property="ancienPin", type="string", example="1234", description="Ancien code PIN"),
+     *             @OA\Property(property="nouveauPin", type="string", example="5678", description="Nouveau code PIN")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Code PIN modifié avec succès",
+     *         @OA\JsonContent(
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Code PIN modifié avec succès")
+     *         )
+     *     ),
+     *     security={{"bearerAuth": {}}}
+     * )
+     */
+    // 1.7 Changer PIN
+    public function changerPin(Request $request)
+    {
+        $request->validate([
+            'ancienPin' => 'required|string|size:4',
+            'nouveauPin' => 'required|string|size:4|different:ancienPin',
+        ]);
+
+        $utilisateur = $request->user();
+        $result = $this->securityService->changerPin($utilisateur, $request->ancienPin, $request->nouveauPin);
         return $this->responseFromResult($result);
     }
 
