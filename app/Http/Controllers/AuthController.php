@@ -237,8 +237,24 @@ class AuthController extends Controller
     // 1.3 Connexion
     public function connexion(ConnexionRequest $request)
     {
-        $result = $this->authService->connexion($request->numeroTelephone, $request->codeOTP);
-        return $this->responseFromResult($result);
+        Log::info('AuthController::connexion called', [
+            'numeroTelephone' => $request->numeroTelephone,
+            'hasCodeOTP' => $request->codeOTP ? 'YES' : 'NO'
+        ]);
+
+        try {
+            $result = $this->authService->connexion($request->numeroTelephone, $request->codeOTP);
+            Log::info('AuthController::connexion result', ['success' => $result['success'] ?? false]);
+            return $this->responseFromResult($result);
+        } catch (\Exception $e) {
+            Log::error('AuthController::connexion exception', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
     }
 
     /**

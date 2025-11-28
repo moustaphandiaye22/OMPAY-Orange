@@ -184,8 +184,15 @@ class PaiementService implements PaiementServiceInterface
                 // Normaliser le numéro de téléphone (supprimer +221 si présent)
                 $numeroNormalise = ltrim($numeroTelephone, '+221');
 
-                // Pour les paiements par téléphone, on peut créer un marchand temporaire ou utiliser un marchand spécial
-                // Ici on suppose qu'on a un marchand par défaut pour les paiements téléphoniques
+                // Vérifier si c'est un paiement vers un utilisateur (comme un transfert)
+                $destinataireUtilisateur = \App\Models\Utilisateur::where('numero_telephone', $numeroNormalise)->first();
+                if ($destinataireUtilisateur) {
+                    // C'est un paiement vers un utilisateur - traiter comme tel
+                    $modeDetails = ['type' => 'telephone_utilisateur', 'numeroTelephone' => $numeroTelephone];
+                    break;
+                }
+
+                // Sinon, chercher un marchand existant
                 $marchand = Marchand::where('numero_telephone', $numeroNormalise)->first();
                 if (!$marchand) {
                     return $this->errorResponse('PAYMENT_013', 'Destinataire non trouvé ou ne peut pas recevoir de paiements', [], 404);
@@ -231,6 +238,7 @@ class PaiementService implements PaiementServiceInterface
                         'id' => (string) Str::uuid(),
                         'idMarchand' => 'USER_' . strtoupper(Str::random(8)),
                         'nom' => $destinataireUtilisateur->prenom . ' ' . $destinataireUtilisateur->nom,
+                        'numero_telephone' => $destinataireUtilisateur->numero_telephone,
                         'categorie' => 'Utilisateur',
                         'actif' => true,
                         'accepte_qr' => false,

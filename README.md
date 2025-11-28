@@ -7,6 +7,10 @@
 
 **OMPay** est une plateforme de paiement mobile moderne et sécurisée développée avec Laravel, permettant aux utilisateurs de gérer leurs transactions financières via Orange Money au Sénégal.
 
+**pour pusher limage ver docker hub **
+cd OMPAY-Orange-Money && docker build -t moustaphafullstacker/ompay-orange-money:latest . && docker push moustaphafullstacker/ompay-orange-money:latest
+
+
 ## 📋 Table des Matières
 
 - [✨ Fonctionnalités](#-fonctionnalités)

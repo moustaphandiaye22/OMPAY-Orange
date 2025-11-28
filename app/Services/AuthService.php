@@ -259,6 +259,8 @@ class AuthService
                 'compteOrangeMoney' => true,
                 'otpEnvoye' => true,
                 'dateExpiration' => $utilisateur->otp_expires_at->toIso8601String(),
+                // TEMPORAIRE: Inclure l'OTP simulé dans la réponse pour les tests
+                'otpSimule' => (string) $otp
             ], 'Code OTP envoyé par SMS. Veuillez vérifier votre téléphone.');
         } else {
             // Vérifier OTP pour connexion
